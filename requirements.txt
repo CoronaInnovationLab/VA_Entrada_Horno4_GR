@@ -1,0 +1,10 @@
+numpy
+opencv-python>=4.1.2
+pandas
+Pillow
+pyYAML
+requests
+tqdm
+opencv-contrib-python
+ultralytics
+jupyter

@@ -1,6 +1,7 @@
 from utils import draw_detections, draw_grids, show_inventary, preparar_img, Tracker, save_sql, log
 from harvesters.core import Harvester
 from ultralytics import YOLO
+import numpy as np
 import cv2 as cv
 import torch
 import time
@@ -73,13 +74,16 @@ while True:
                 video_name: str = time.strftime("%Y-%m-%d_%H-%M-%S")
 
                 output_inference_path = os.path.join(output_path, f"{video_name}_inference.mp4")
-                output_raw_path = os.path.join(output_path, f"{video_name}_raw.mp4")
+                output_raw_path = os.path.join(video_path, f"{video_name}_raw.mp4")
 
-                fps = 30
+                fps = 25
                 fourcc = cv.VideoWriter_fourcc(*'mp4v')
+                fourccraw = cv.VideoWriter_fourcc(*'h264')
 
                 inference = cv.VideoWriter(output_inference_path, fourcc, fps, (768, 576))
-                raw = cv.VideoWriter(output_raw_path, fourcc, fps, (component.width, component.height))
+                raw = cv.VideoWriter(output_raw_path, fourccraw, fps, (component.width, component.height))
+
+                video_iniciado = True
 
             # Preprocesar la imagen
             frame, roi = preparar_img(image)
@@ -91,11 +95,12 @@ while True:
             for result in results:
                 boxes = result.boxes.xyxy.cpu().numpy()
                 labels = result.boxes.cls.cpu().numpy()
+                # labels = np.vectorize(class_names.get)(labels.astype(int))
                 confidences = result.boxes.conf.cpu().numpy()
 
                 # Actualizar el inventario
                 carro_completo = tracker.update(boxes, labels)
-
+                
                 alarma_choque = tracker.contar(frame, crop_path) or alarma_choque
 
                 # mostrar el inventario
@@ -104,6 +109,19 @@ while True:
                 # Dibujar detecciones
                 for box, label, confidence in zip(boxes, labels, confidences):
                     frame = draw_detections(frame, box, label, confidence)
+
+            #mostrar bordes
+            frame = draw_grids(frame)
+
+            # Guardar fotogramas
+            raw.write(image)
+            inference.write(frame)
+
+            # Ver en tiempo real
+            cv.imshow("YOLOv8 Inference", frame)
+            key = cv.waitKey(1) & 0xFF
+            if key == ord('q'):
+                break
 
             if carro_completo:
                 inference.release()
@@ -116,19 +134,7 @@ while True:
                 cv.destroyAllWindows()
                 #
                 log(f"Alarma de choque: {alarma_choque}")
-                save_sql(tracker.inventario, video_name, alarma_choque)
+                # save_sql(tracker.inventario, video_name, alarma_choque)
+                log(tracker.inventario)
 
                 del tracker
-
-            #mostrar bordes
-            frame = draw_grids(frame)
-
-            # Guardar videos
-            raw.write(image)
-            inference.wirte(frame)
-
-            # Ver en tiempo real
-            cv.imshow("YOLOv8 Inference", frame)
-            key = cv.waitKey(1) & 0xFF
-            if key == ord('q'):
-                break

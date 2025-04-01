@@ -141,6 +141,8 @@ def preparar_img(img):
     '''
     Preprocesado de la imagen, realiza correccion de ojo de pez y resize a 800x600
     '''
+    # Convertir la imagen a formato BGR para OpenCV
+    img = cv.cvtColor(img, cv.COLOR_BAYER_BG2BGR)
 
     # Corregir distorsion
     # Matriz de cámara (suponiendo que ya la tienes)
@@ -200,9 +202,9 @@ class Tracker:
                     del self.tracks[track_id]  # Eliminar objetos perdidos
             
             if self.tracks == {}:
-                return False
+                return True
             
-            return True
+            return False
 
         # Calcular los centros de las detecciones
         detection_centers = np.array(list([(d[0] + d[2]) / 2, (d[1] + d[3]) / 2] for d in detections))
@@ -270,6 +272,8 @@ class Tracker:
                 }
                 self.next_id += 1
 
+        return False
+
     
     def contar(self, frame, path_clasificacion):
         '''
@@ -299,10 +303,10 @@ class Tracker:
                 cv.imwrite(ruta, crop)
 
                 # Añadir al inventario
-                if track_class_ids[i] in self.inventario:
-                    self.inventario[track_class_ids[i]] += 1
+                if int(track_class_ids[i]) in self.inventario:
+                    self.inventario[int(track_class_ids[i])] += 1
                 else:
-                    self.inventario[track_class_ids[i]] = 1
+                    self.inventario[int(track_class_ids[i])] = 1
 
                 # Marcar como contado
                 self.tracks[track_ids[i]]['counted'] = True

@@ -1,51 +1,35 @@
-from utils import draw_detections, draw_grids, show_inventary, preparar_img, Tracker, log
+from utils import draw_detections, draw_grids, show_inventary, preparar_img, Tracker, save_sql, log
 from harvesters.core import Harvester
-from sqlalchemy import create_engine, exc, URL
-from dotenv import load_dotenv
 from ultralytics import YOLO
 import cv2 as cv
 import torch
+import time
 import sys
 import os
-
-# ******************************************************
-# Parametros conexion SQL
-# ******************************************************
-load_dotenv()
-# Connection keys 
-server = os.getenv("SERVER")
-username = os.getenv("USER_SQL")
-password = os.getenv("PASSWORD")
-database = os.getenv("DATABASE")
-tabla = 'entrada_H4_GR'
-# Connecting to the sql database
-connection_str = "DRIVER={ODBC Driver 18 for SQL Server};SERVER=%s;DATABASE=%s;UID=%s;PWD=%s;Encrypt=no" % (server, database, username, password)
-connection_url = URL.create("mssql+pyodbc", query={"odbc_connect": connection_str})
 
 # ******************************************************
 # Configuraciones iniciales
 # ******************************************************
 model_path: str = "runs/train/Entrada_H4_YOLO_V1/weights/best.pt" 
 crop_path: str = "data/crops"
-video_name: str = "crudo_2025-02-28_13-01-09.mp4"
 
-video_path: str = os.path.join('data/videos', video_name)
+video_path: str = 'data/videos'
 output_path: str = 'data/videos/inferencias'
-save_video: bool = True
+video_iniciado: bool = False
+carro_completo: bool = False
+
+if not os.path.exists(output_path):
+    os.makedirs(output_path)
 
 # ******************************************************
 # Configuracion camara y guardado de video
 # ******************************************************
 # Inicializar Harvester
 harves = Harvester()
-
 cti_file = "C:/Program Files/MATRIX VISION/mvIMPACT Acquire/bin/x64/mvGENTLProducer.cti"
-
 harves.add_file(cti_file)
-
 # Actualizar la lista de cámaras disponibles
 harves.update()
-
 try:
     # Conectar a la primera cámara disponible
     ia = harves.create(0)
@@ -55,8 +39,6 @@ except Exception as e:
     sys.exit(1)
 
 ia.start()
-if not os.path.exists(output_path):
-    os.makedirs(output_path)
 
 # ******************************************************
 # Parametros del modelo
@@ -65,47 +47,42 @@ model = YOLO(model_path)
 class_names = model.names
 min_confidence: float  = 0.90
 min_iou: float = 0.45
-alarma_choque = False
 
 device = 0 if torch.cuda.is_available() else "cpu"
 print(f"Using device: {device}")
 
-# Inicializar tracker
-tracker = Tracker()
-
 while True:
     # Capturar una imagen de la cámara
     with ia.fetch() as buffer:
-        # # Obtener los datos del buffer
-        # component = buffer.payload.components[0]
-        # # Convertir los datos a una imagen numpy
-        # image = component.data.reshape(component.height, component.width)
-
-        # # Preprocesar la imagen
-        # frame = preparar_img(image)
-        # cv.imshow('Camera Feed', frame)
-
         #Preguntamos si no se esta dando la confirmacion de movimiento carro
         if ia.remote_device.node_map.LineStatus.value==False:
-            carro_completo = 0
+            carro_completo = False
         #Preguntamos si se esta dando la confirmacion de movimiento carro
-        if ia.remote_device.node_map.LineStatus.value == True and carro_completo < 3:
-            # inicializar videowriter
-            if not video_iniciado:
-                output_path = os.path.join(output_path, f"{video_name[:-4]}_inference.mp4")
-                fps = 30
-                width = int(768)
-                height = int(576)
-                fourcc = cv.VideoWriter_fourcc(*'mp4v')
-                out = cv.VideoWriter(output_path, fourcc, fps, (width, height))
-
+        if ia.remote_device.node_map.LineStatus.value == True and not carro_completo:
             # Obtener los datos del buffer
             component = buffer.payload.components[0]
+
             # Convertir los datos a una imagen numpy
             image = component.data.reshape(component.height, component.width)
 
+            # inicializar variables
+            if not video_iniciado:
+
+                alarma_choque = False
+                tracker = Tracker()
+                video_name: str = time.strftime("%Y-%m-%d_%H-%M-%S")
+
+                output_inference_path = os.path.join(output_path, f"{video_name}_inference.mp4")
+                output_raw_path = os.path.join(output_path, f"{video_name}_raw.mp4")
+
+                fps = 30
+                fourcc = cv.VideoWriter_fourcc(*'mp4v')
+
+                inference = cv.VideoWriter(output_inference_path, fourcc, fps, (768, 576))
+                raw = cv.VideoWriter(output_raw_path, fourcc, fps, (component.width, component.height))
+
             # Preprocesar la imagen
-            frame = preparar_img(frame)
+            frame, roi = preparar_img(image)
 
             # Inferir
             results = model.predict(source=frame, conf=min_confidence, iou=min_iou, device=device)
@@ -117,8 +94,7 @@ while True:
                 confidences = result.boxes.conf.cpu().numpy()
 
                 # Actualizar el inventario
-                fin = tracker.update(boxes, labels)
-                print(f"Total objects: {len(tracker.tracks)}")
+                carro_completo = tracker.update(boxes, labels)
 
                 alarma_choque = tracker.contar(frame, crop_path) or alarma_choque
 
@@ -129,24 +105,30 @@ while True:
                 for box, label, confidence in zip(boxes, labels, confidences):
                     frame = draw_detections(frame, box, label, confidence)
 
-            if fin:
-                video_writer.release()
-                video_writer = None
+            if carro_completo:
+                inference.release()
+                inference = None
+
+                raw.release()
+                raw = None
+                
                 video_iniciado = False
                 cv.destroyAllWindows()
                 #
-                save_sql(inventario_final, nombre)
+                log(f"Alarma de choque: {alarma_choque}")
+                save_sql(tracker.inventario, video_name, alarma_choque)
 
-                # reinicio de vars
-                break
+                del tracker
 
             #mostrar bordes
             frame = draw_grids(frame)
+
+            # Guardar videos
+            raw.write(image)
+            inference.wirte(frame)
 
             # Ver en tiempo real
             cv.imshow("YOLOv8 Inference", frame)
             key = cv.waitKey(1) & 0xFF
             if key == ord('q'):
                 break
-                
-            print(f"Alarma de choque: {alarma_choque}")

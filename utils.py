@@ -1,4 +1,7 @@
 from scipy.spatial.distance import cdist
+from sqlalchemy import create_engine, exc, URL
+from dotenv import load_dotenv
+import pandas as pd
 import numpy as np
 import cv2 as cv
 import datetime
@@ -15,11 +18,24 @@ count_line: int = 270
 colores = [(255, 0, 0), (0, 255, 0), (0, 0, 255), (255, 255, 0), (255, 0, 255)]
 
 
+# Parametros conexion SQL
+load_dotenv()
+# Connection keys 
+server = os.getenv("SERVER")
+username = os.getenv("USER_SQL")
+password = os.getenv("PASSWORD")
+database = os.getenv("DATABASE")
+tabla = 'entrada_H4_GR'
+# Connecting to the sql database
+connection_str = "DRIVER={ODBC Driver 18 for SQL Server};SERVER=%s;DATABASE=%s;UID=%s;PWD=%s;Encrypt=no" % (server, database, username, password)
+connection_url = URL.create("mssql+pyodbc", query={"odbc_connect": connection_str})
+
+
 def log(msg:str):
     print(f'[{datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}] {msg}\n')
 
-def draw_detections(image, box, label, confidence):
 
+def draw_detections(image, box, label, confidence):
     label_confianza = str(int(label)) + " " + str(round(confidence * 100, 2)) + "%"
     color = tuple(colores[int(label)])
     
@@ -152,8 +168,11 @@ def preparar_img(img):
     recorte = cv.resize(dst, (768, 576), interpolation=cv.INTER_CUBIC)
 
     img_final = recorte
+
+    # mascara ROI
+    mascara = 0
     
-    return img_final
+    return img_final, mascara
 
 
 class Tracker:
@@ -295,8 +314,7 @@ class Tracker:
         return alarma_choque
     
     
-def save_sql(inventario_final: dict, fecha:str):
-    global alarma_choque
+def save_sql(inventario_final: dict, fecha:str, alarma_choque:bool):
     # formato fecha 'YYYY-MM-DD hh:mm:ss'
     fecha_format = fecha.split('_') #("%Y-%m-%d %H:%M:%S")
     fecha_format[1] = fecha_format[1].replace('-',':')
@@ -309,7 +327,7 @@ def save_sql(inventario_final: dict, fecha:str):
     
     # Connect to DB
     engine = create_engine(connection_url)
-    print(f'Guardando análisis en la tabla {tabla}...')
+    log(f'Guardando análisis en la tabla {tabla}...')
     try:
         # Inserta el DataFrame completo
         df.to_sql(
@@ -318,7 +336,7 @@ def save_sql(inventario_final: dict, fecha:str):
             if_exists='append',  # Opciones: 'fail', 'replace', 'append'
             index=False
         )
-        print("Datos insertados correctamente.")
+        log("Datos insertados correctamente.")
     except exc.IntegrityError:
         log('Los datos ya se encontraban en la Base de Datos.')
     except Exception as e:

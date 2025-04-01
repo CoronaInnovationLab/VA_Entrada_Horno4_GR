@@ -6,7 +6,7 @@ import os
 
 model_path: str = "runs/train/Entrada_H4_YOLO_V1/weights/best.pt" 
 crop_path: str = "data/crops"
-video_name: str = "crudo_2025-01-10_13-20-38.mp4"
+video_name: str = "crudo_2025-02-28_13-01-09.mp4"
 
 video_path: str = os.path.join('data/videos', video_name)
 output_path: str = 'data/videos/inferencias'

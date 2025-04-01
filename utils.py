@@ -1,6 +1,7 @@
 from scipy.spatial.distance import cdist
 import numpy as np
 import cv2 as cv
+import datetime
 import time
 import os
 
@@ -12,6 +13,10 @@ count_line: int = 270
 # Lista de colores en formato RGB
 #           Rojo,       Verde,          Azul,       Amarillo,       Magenta
 colores = [(255, 0, 0), (0, 255, 0), (0, 0, 255), (255, 255, 0), (255, 0, 255)]
+
+
+def log(msg:str):
+    print(f'[{datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}] {msg}\n')
 
 def draw_detections(image, box, label, confidence):
 
@@ -288,3 +293,35 @@ class Tracker:
                     alarma_choque = True
 
         return alarma_choque
+    
+    
+def save_sql(inventario_final: dict, fecha:str):
+    global alarma_choque
+    # formato fecha 'YYYY-MM-DD hh:mm:ss'
+    fecha_format = fecha.split('_') #("%Y-%m-%d %H:%M:%S")
+    fecha_format[1] = fecha_format[1].replace('-',':')
+    nombre = ' '.join(fecha_format)
+    # Añadir fecha del carro - fecha/hora
+    inventario_final['fecha'] = nombre
+    inventario_final['colision'] = 1 if alarma_choque else 0
+    df = pd.DataFrame(inventario_final, index=[inventario_final['fecha']])
+    log(df)
+    
+    # Connect to DB
+    engine = create_engine(connection_url)
+    print(f'Guardando análisis en la tabla {tabla}...')
+    try:
+        # Inserta el DataFrame completo
+        df.to_sql(
+            name=tabla,  
+            con=engine,
+            if_exists='append',  # Opciones: 'fail', 'replace', 'append'
+            index=False
+        )
+        print("Datos insertados correctamente.")
+    except exc.IntegrityError:
+        log('Los datos ya se encontraban en la Base de Datos.')
+    except Exception as e:
+        log(f"Error al insertar datos: {e}")
+    finally:
+        engine.dispose()  # Cierra la conexión

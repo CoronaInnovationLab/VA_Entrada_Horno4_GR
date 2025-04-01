@@ -8,3 +8,12 @@ tqdm
 opencv-contrib-python
 ultralytics
 jupyter
+openpyxl~=3.1.2
+pyodbc~=5.0.1
+SQLAlchemy~=2.0.25
+genicam
+harvesters
+harvester
+streamlit~=1.38.0
+plotly~=5.18.0
+python-dotenv==1.0.1

@@ -1,12 +1,13 @@
 from utils import draw_detections, draw_grids, show_inventary, preparar_img, Tracker
 from ultralytics import YOLO
+import numpy as np
 import cv2 as cv
 import torch
 import os
 
 model_path: str = "runs/train/Entrada_H4_YOLO_V1/weights/best.pt" 
 crop_path: str = "data/crops"
-video_name: str = "crudo_2025-02-28_13-01-09.mp4"
+video_name: str = "crudo_2025-01-10_13-20-38.mp4"
 
 video_path: str = os.path.join('data/videos', video_name)
 output_path: str = 'data/videos/inferencias'
@@ -44,15 +45,17 @@ while cap.isOpened():
         break
 
     # Preprocesar la imagen
-    frame = preparar_img(frame)
+    frame, mascara = preparar_img(frame)
 
     # Inferir
-    results = model.predict(source=frame, conf=min_confidence, iou=min_iou, device=device)
+    results = model.predict(source=mascara, conf=min_confidence, iou=min_iou, device=device)
     
     # Procesar resultados
     for result in results:
         boxes = result.boxes.xyxy.cpu().numpy()
         labels = result.boxes.cls.cpu().numpy()
+        #convertir labels de float a su equivalente en string
+        labels = np.array([class_names[int(label)] for label in labels])
         confidences = result.boxes.conf.cpu().numpy()
 
         # Actualizar el inventario

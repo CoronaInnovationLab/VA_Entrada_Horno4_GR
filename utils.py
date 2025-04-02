@@ -14,21 +14,21 @@ malla_der: int = 622
 count_line: int = 270
 
 # Lista de colores en formato RGB
-#           Rojo,       Verde,          Azul,       Amarillo,       Magenta
-colores = [(255, 0, 0), (0, 255, 0), (0, 0, 255), (255, 255, 0), (255, 0, 255)]
+#           Rojo,               Verde,                     Azul,                Amarillo,               Magenta
+colores = {'Taza':(255, 0, 0), 'Lavamanos':(0, 255, 0), 'Onepiece':(0, 0, 255), 'Tanque':(255, 255, 0), 'Pedestal':(255, 0, 255)}
 
 
-# Parametros conexion SQL
-load_dotenv()
-# Connection keys 
-server = os.getenv("SERVER")
-username = os.getenv("USER_SQL")
-password = os.getenv("PASSWORD")
-database = os.getenv("DATABASE")
-tabla = 'entrada_H4_GR'
-# Connecting to the sql database
-connection_str = "DRIVER={ODBC Driver 18 for SQL Server};SERVER=%s;DATABASE=%s;UID=%s;PWD=%s;Encrypt=no" % (server, database, username, password)
-connection_url = URL.create("mssql+pyodbc", query={"odbc_connect": connection_str})
+# # Parametros conexion SQL
+# load_dotenv()
+# # Connection keys 
+# server = os.getenv("SERVER")
+# username = os.getenv("USER_SQL")
+# password = os.getenv("PASSWORD")
+# database = os.getenv("DATABASE")
+# tabla = 'entrada_H4_GR'
+# # Connecting to the sql database
+# connection_str = "DRIVER={ODBC Driver 18 for SQL Server};SERVER=%s;DATABASE=%s;UID=%s;PWD=%s;Encrypt=no" % (server, database, username, password)
+# connection_url = URL.create("mssql+pyodbc", query={"odbc_connect": connection_str})
 
 
 def log(msg:str):
@@ -36,8 +36,8 @@ def log(msg:str):
 
 
 def draw_detections(image, box, label, confidence):
-    label_confianza = str(int(label)) + " " + str(round(confidence * 100, 2)) + "%"
-    color = tuple(colores[int(label)])
+    label_confianza = label + " " + str(round(confidence * 100, 2)) + "%"
+    color = tuple(colores[label])
     
     # Dibujar bounding box
     x1, y1, x2, y2 = box[:4].astype(int)
@@ -114,13 +114,13 @@ def show_inventary(frame, inventario):
     Mustra los objetos contados en la parte superior isquierda de la pantalla,
     junto con el conteo total de objetos.
     '''
-    x, y = 50, 50  # Posición inicial para el texto
+    x, y = 40, 50  # Posición inicial para el texto
     font_scale = 0.5
     thickness = 2
 
     for clase, cantidad in inventario.items():
         # Texto de clase 
-        clase_texto = f"{str(int(clase))}: "
+        clase_texto = f"{clase}: "
         cv.putText(frame, clase_texto, (int(x), int(y)), cv.FONT_HERSHEY_SIMPLEX, 
                    font_scale, (255, 255, 255), thickness, cv.LINE_AA)
         
@@ -131,18 +131,19 @@ def show_inventary(frame, inventario):
         text_size = cv.getTextSize(clase_texto, cv.FONT_HERSHEY_SIMPLEX, font_scale, thickness)[0]
         cantidad_x = x + text_size[0]
         cv.putText(frame, cantidad_texto, (int(cantidad_x), int(y)), cv.FONT_HERSHEY_SIMPLEX, 
-                   font_scale, colores[int(clase)], thickness, cv.LINE_AA)
+                   font_scale, colores[clase], thickness, cv.LINE_AA)
 
         # Incrementar la posición x para la siguiente clase
-        x += text_size[0] * 2
+        x += text_size[0] * 1.5
 
 
 def preparar_img(img):
     '''
     Preprocesado de la imagen, realiza correccion de ojo de pez y resize a 800x600
     '''
-    # Convertir la imagen a formato BGR para OpenCV
-    img = cv.cvtColor(img, cv.COLOR_BAYER_BG2BGR)
+    # Convertir la imagen a formato BGR para OpenCV 
+    # Solo cuando se trabaja con la camara
+    # img = cv.cvtColor(img, cv.COLOR_BAYER_BG2BGR)
 
     # Corregir distorsion
     # Matriz de cámara (suponiendo que ya la tienes)
@@ -171,8 +172,13 @@ def preparar_img(img):
 
     img_final = recorte
 
-    # mascara ROI
-    mascara = 0
+    # ROI para evitar detecciones falsas en la parte superior de la imagen
+    # Mascara
+    blank = np.zeros(img_final.shape[:2], dtype='uint8')
+    # Area seleccion ROI 
+    cv.rectangle(blank, (malla_izq-50, 175), (malla_der + 50, 450), 255, -1)
+    mascara = cv.bitwise_and(img_final,img_final,mask=blank)
+    cv.imwrite('mask.png', mascara)
     
     return img_final, mascara
 
@@ -181,7 +187,7 @@ class Tracker:
     def __init__(self, max_distance=50, max_lost=5):
         """
         Inicializa el tracker.
-        tracks format: {track_id: {'class_id': id, 'center': (x, y), 'bbox': [x1, y1, x2, y2], 'counted': bool}, .., ...}
+        tracks format: {track_id: {'class_name': name, 'center': (x, y), 'bbox': [x1, y1, x2, y2], 'counted': bool}, .., ...}
         inventario format: {class_id: count, .., ...}
         """
         self.next_id = 0
@@ -212,7 +218,7 @@ class Tracker:
         # Obtener los centros de los objetos rastreados
         track_ids = list(self.tracks.keys())
         track_centers = np.array([self.tracks[track_id]['center'] for track_id in track_ids])
-        track_class_ids = np.array([self.tracks[track_id]['class_id'] for track_id in track_ids])
+        track_class_names = np.array([self.tracks[track_id]['class_name'] for track_id in track_ids])
 
         # Asociar detecciones con objetos rastreados usando la distancia
         if len(track_centers) > 0:
@@ -230,14 +236,14 @@ class Tracker:
                 if distances[row, col] > self.max_distance:
                     continue
                 # Si la clase no coincide, continuar
-                if track_class_ids[row] != labels[col]:
+                if track_class_names[row] != labels[col]:
                     continue
                 
                 # Actualizar el objeto rastreado con la nueva detección
                 track_id = track_ids[row]
                 self.tracks[track_id]['center'] = detection_centers[col]
                 self.tracks[track_id]['bbox'] = detections[col]
-                self.tracks[track_id]['class_id'] = labels[col]
+                self.tracks[track_id]['class_name'] = labels[col]
                 self.tracks[track_id]['lost'] = 0
                 assigned_tracks.add(row)
                 assigned_detections.add(col)
@@ -255,7 +261,7 @@ class Tracker:
                     self.tracks[self.next_id] = {
                         'center': detection_centers[i],
                         'bbox': detection,
-                        'class_id': labels[i],
+                        'class_name': labels[i],
                         'lost': 0,
                         'counted': False
                     }
@@ -266,7 +272,7 @@ class Tracker:
                 self.tracks[self.next_id] = {
                     'center': ((detection[0] + detection[2]) / 2, (detection[1] + detection[3]) / 2),
                     'bbox': detection,
-                    'class_id': label,
+                    'class_name': label,
                     'lost': 0,
                     'counted': False
                 }
@@ -285,7 +291,7 @@ class Tracker:
         track_ids = list(self.tracks.keys())
         track_centers = np.array([self.tracks[track_id]['center'] for track_id in track_ids])
         track_counted = np.array([self.tracks[track_id]['counted'] for track_id in track_ids])
-        track_class_ids = np.array([self.tracks[track_id]['class_id'] for track_id in track_ids])
+        track_class_names = np.array([self.tracks[track_id]['class_name'] for track_id in track_ids])
         track_boxes = np.array([self.tracks[track_id]['bbox'] for track_id in track_ids])
 
         # Obtener los objetos que cruzan la línea de conteo
@@ -295,7 +301,7 @@ class Tracker:
                 x1, y1, x2, y2 = track_boxes[i].astype(int)
                 crop = frame[y1:y2,x1:x2]
                 # Ruta
-                class_name = str(int(track_class_ids[i]))
+                class_name = track_class_names[i]
                 if not os.path.exists(os.path.join(path_clasificacion, class_name)):
                     os.makedirs(os.path.join(path_clasificacion, class_name))
                 ruta = os.path.join(path_clasificacion, class_name, f'{time.strftime("%Y-%m-%d_%H-%M-%S")}.png') 
@@ -303,10 +309,10 @@ class Tracker:
                 cv.imwrite(ruta, crop)
 
                 # Añadir al inventario
-                if int(track_class_ids[i]) in self.inventario:
-                    self.inventario[int(track_class_ids[i])] += 1
+                if track_class_names[i] in self.inventario:
+                    self.inventario[track_class_names[i]] += 1
                 else:
-                    self.inventario[int(track_class_ids[i])] = 1
+                    self.inventario[track_class_names[i]] = 1
 
                 # Marcar como contado
                 self.tracks[track_ids[i]]['counted'] = True

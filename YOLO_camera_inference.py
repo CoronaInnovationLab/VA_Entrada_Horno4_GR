@@ -89,13 +89,14 @@ while True:
             frame, roi = preparar_img(image)
 
             # Inferir
-            results = model.predict(source=frame, conf=min_confidence, iou=min_iou, device=device)
+            results = model.predict(source=roi, conf=min_confidence, iou=min_iou, device=device)
             
             # Procesar resultados
             for result in results:
                 boxes = result.boxes.xyxy.cpu().numpy()
                 labels = result.boxes.cls.cpu().numpy()
-                # labels = np.vectorize(class_names.get)(labels.astype(int))
+                #convertir labels de float a su equivalente en string
+                labels = np.array([class_names[int(label)] for label in labels])
                 confidences = result.boxes.conf.cpu().numpy()
 
                 # Actualizar el inventario

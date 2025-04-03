@@ -330,9 +330,9 @@ def save_sql(inventario_final: dict, fecha:str, alarma_choque:bool):
     fecha_format[1] = fecha_format[1].replace('-',':')
     nombre = ' '.join(fecha_format)#("%Y-%m-%d %H:%M:%S")
     # Añadir fecha del carro - fecha/hora
-    inventario_final['fecha'] = nombre
-    inventario_final['colision'] = 1 if alarma_choque else 0
-    df = pd.DataFrame(inventario_final, index=[inventario_final['fecha']])
+    inventario_final['Fecha'] = nombre
+    inventario_final['Colision'] = 1 if alarma_choque else 0
+    df = pd.DataFrame(inventario_final, index=[inventario_final['Fecha']])
     log(df)
     
     # Connect to DB

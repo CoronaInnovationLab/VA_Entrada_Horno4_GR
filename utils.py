@@ -10,7 +10,7 @@ import os
 
 # Definición de la malla
 malla_izq: int = 106
-malla_der: int = 622
+malla_der: int = 722#622
 count_line: int = 270
 
 # Lista de colores en formato RGB
@@ -27,7 +27,7 @@ password = os.getenv("PASSWORD")
 database = os.getenv("DATABASE")
 tabla = 'entrada_H4_GR'
 # Connecting to the sql database
-connection_str = "DRIVER={ODBC Driver 18 for SQL Server};SERVER=%s;DATABASE=%s;UID=%s;PWD=%s;Encrypt=no" % (server, database, username, password)
+connection_str = "DRIVER={ODBC Driver 17 for SQL Server};SERVER=%s;DATABASE=%s;UID=%s;PWD=%s;Encrypt=no" % (server, database, username, password)
 connection_url = URL.create("mssql+pyodbc", query={"odbc_connect": connection_str})
 
 
@@ -143,7 +143,7 @@ def preparar_img(img):
     '''
     # Convertir la imagen a formato BGR para OpenCV 
     # Solo cuando se trabaja con la camara
-    # img = cv.cvtColor(img, cv.COLOR_BAYER_BG2BGR)
+    img = cv.cvtColor(img, cv.COLOR_BAYER_BG2BGR)
 
     # Corregir distorsion
     # Matriz de cámara (suponiendo que ya la tienes)

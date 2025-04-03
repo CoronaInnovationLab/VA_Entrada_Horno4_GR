@@ -135,7 +135,7 @@ while True:
                 cv.destroyAllWindows()
                 #
                 log(f"Alarma de choque: {alarma_choque}")
-                # save_sql(tracker.inventario, video_name, alarma_choque)
+                save_sql(tracker.inventario, video_name, alarma_choque)
                 log(tracker.inventario)
 
                 del tracker

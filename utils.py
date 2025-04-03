@@ -18,17 +18,17 @@ count_line: int = 270
 colores = {'Taza':(255, 0, 0), 'Lavamanos':(0, 255, 0), 'Onepiece':(0, 0, 255), 'Tanque':(255, 255, 0), 'Pedestal':(255, 0, 255)}
 
 
-# # Parametros conexion SQL
-# load_dotenv()
-# # Connection keys 
-# server = os.getenv("SERVER")
-# username = os.getenv("USER_SQL")
-# password = os.getenv("PASSWORD")
-# database = os.getenv("DATABASE")
-# tabla = 'entrada_H4_GR'
-# # Connecting to the sql database
-# connection_str = "DRIVER={ODBC Driver 18 for SQL Server};SERVER=%s;DATABASE=%s;UID=%s;PWD=%s;Encrypt=no" % (server, database, username, password)
-# connection_url = URL.create("mssql+pyodbc", query={"odbc_connect": connection_str})
+# Parametros conexion SQL
+load_dotenv()
+# Connection keys 
+server = os.getenv("SERVER")
+username = os.getenv("USER_SQL")
+password = os.getenv("PASSWORD")
+database = os.getenv("DATABASE")
+tabla = 'entrada_H4_GR'
+# Connecting to the sql database
+connection_str = "DRIVER={ODBC Driver 18 for SQL Server};SERVER=%s;DATABASE=%s;UID=%s;PWD=%s;Encrypt=no" % (server, database, username, password)
+connection_url = URL.create("mssql+pyodbc", query={"odbc_connect": connection_str})
 
 
 def log(msg:str):
@@ -325,10 +325,10 @@ class Tracker:
     
     
 def save_sql(inventario_final: dict, fecha:str, alarma_choque:bool):
-    # formato fecha 'YYYY-MM-DD hh:mm:ss'
-    fecha_format = fecha.split('_') #("%Y-%m-%d %H:%M:%S")
+    # formato fecha 'YYYY-MM-DD_hh-mm-ss'
+    fecha_format = fecha.split('_') 
     fecha_format[1] = fecha_format[1].replace('-',':')
-    nombre = ' '.join(fecha_format)
+    nombre = ' '.join(fecha_format)#("%Y-%m-%d %H:%M:%S")
     # Añadir fecha del carro - fecha/hora
     inventario_final['fecha'] = nombre
     inventario_final['colision'] = 1 if alarma_choque else 0

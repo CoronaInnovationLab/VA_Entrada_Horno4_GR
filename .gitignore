@@ -1,4 +1,8 @@
-data/
+00_Data/crops
+00_Data/fotos
+00_Data/videos
+
+02_Python/modelos
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

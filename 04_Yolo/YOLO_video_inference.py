@@ -6,11 +6,11 @@ import torch
 import os
 
 model_path: str = "runs/train/Entrada_H4_YOLO_V1/weights/best.pt" 
-crop_path: str = "data/crops"
-video_name: str = "crudo_2025-01-10_13-20-38.mp4"
+crop_path: str = "../00_Data/crops"
+video_name: str = "../00_Data/videos/crudo_2025-01-10_13-20-38.mp4"
 
-video_path: str = os.path.join('data/videos', video_name)
-output_path: str = 'data/videos/inferencias'
+video_path: str = os.path.join('../00_Data/videos', video_name)
+output_path: str = '../00_Data/videos/inferencias'
 save_video: bool = True
 
 cap = cv.VideoCapture(video_path)

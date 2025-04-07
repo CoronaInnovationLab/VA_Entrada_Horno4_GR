@@ -12,10 +12,10 @@ import os
 # Configuraciones iniciales
 # ******************************************************
 model_path: str = "runs/train/Entrada_H4_YOLO_V1/weights/best.pt" 
-crop_path: str = "data/crops"
+crop_path: str = "../00_Data/crops"
 
-video_path: str = 'data/videos'
-output_path: str = 'data/videos/inferencias'
+video_path: str = '../00_Data/videos'
+output_path: str = '../00_Data/videos/inferencias'
 video_iniciado: bool = False
 carro_completo: bool = False
 

@@ -77,7 +77,7 @@ while True:
                 output_raw_path = os.path.join(video_path, f"{video_name}_raw.mp4")
 
                 fps = 23
-                fourcc = cv.VideoWriter_fourcc(*'mp4v')
+                fourcc = 0x00000021#cv.VideoWriter_fourcc(*'mp4v')
                 # fourccraw = cv.VideoWriter_fourcc(*'mpv4')
 
                 inference = cv.VideoWriter(output_inference_path, fourcc, fps, (768, 576))

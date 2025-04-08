@@ -18,7 +18,7 @@ import os
 # ******************************************************
 
 debug_mode: bool = True
-path: str = 'data/videos'
+path: str = '00_Data/videos/inferencias'
 RECURRENCIA = 'recurrencia [Min]'
 
 # ******************************************************
@@ -32,7 +32,7 @@ password = os.getenv("PASSWORD")
 database = os.getenv("DATABASE")
 tabla = 'entrada_H4_GR'
 # Connecting to the sql database
-connection_str = "DRIVER={ODBC Driver 18 for SQL Server};SERVER=%s;DATABASE=%s;UID=%s;PWD=%s;Encrypt=no" % (server, database, username, password)
+connection_str = "DRIVER={ODBC Driver 17 for SQL Server};SERVER=%s;DATABASE=%s;UID=%s;PWD=%s;Encrypt=no" % (server, database, username, password)
 connection_url = URL.create("mssql+pyodbc", query={"odbc_connect": connection_str})
 
 
@@ -48,7 +48,7 @@ def get_sql(sel_dia_ini, sel_dia_fin) -> pd.DataFrame:
     try:
         # Execute the query
         with conn.begin() as connection:
-            QUERY = "SELECT * FROM [{}].[dbo].[{}] WHERE (fecha BETWEEN '{}' AND '{}')"
+            QUERY = "SELECT * FROM [{}].[dbo].[{}] WHERE (Fecha BETWEEN '{}' AND '{}')"
             df = pd.read_sql_query(QUERY.format(database, tabla, sel_dia_ini, sel_dia_fin), connection)
     except (exc.TimeoutError, pyodbc.OperationalError):
         log("La consulta ha superado el tiempo límite.")
@@ -72,10 +72,10 @@ sel_dia_ini = c1.date_input("Seleccione el día inicial",
 sel_dia_fin = c1.date_input("Seleccione el día final", datetime.date.today(), key="dia_fin")
 
 if sel_dia_fin <= sel_dia_ini:
-    c2.error("Recuerda seleccionar una fecha inicial anterior a la fecha final!!!")
+    c2.error("Recuerda seleccionar una Fecha inicial anterior a la Fecha final!!!")
     st.stop()
 elif sel_dia_fin > datetime.date.today():
-    c2.error("Recuerda que la fecha final no puede ser superior a la fecha actual")
+    c2.error("Recuerda que la Fecha final no puede ser superior a la Fecha actual")
     st.stop()
 else:
     c2.info("Analizaras un periodo de tiempo de " + str((sel_dia_fin - sel_dia_ini).days + 1) + " días.")
@@ -83,24 +83,24 @@ else:
 
 # Get data
 inventario = get_sql(sel_dia_ini,sel_dia_fin)
-inventario.sort_values(by='fecha',inplace=True)
-inventario[RECURRENCIA] = inventario['fecha']- inventario['fecha'].shift()
+inventario.sort_values(by='Fecha',inplace=True)
+inventario[RECURRENCIA] = inventario['Fecha']- inventario['Fecha'].shift()
 inventario[RECURRENCIA] = inventario[RECURRENCIA].iloc[1:].apply(lambda x: math.ceil(x.seconds/60))
 
 # Mostrar
-st.table(inventario[['lavamanos', 'onepiece', 'pedestal', 'tanque', 'taza', RECURRENCIA, 'colision']])
+st.table(inventario[['Fecha', 'Lavamanos', 'Onepiece', 'Pedestal', 'Tanque', 'Taza', RECURRENCIA, 'Colision']])
 
 # Resumen de totales
-class_names = ['lavamanos', 'onepiece', 'pedestal', 'tanque', 'taza']
+class_names = ['Lavamanos', 'Onepiece', 'Pedestal', 'Tanque', 'Taza']
 totales = inventario[class_names].sum(axis=0)
 totales: dict = {key: total for key, total in zip(class_names, totales)}
 
-st.info(f'total: {totales}')
+st.info(f'Total: {totales}')
 
 # Grafica recurrencia
 fig = go.Figure(
     go.Bar(
-        x=inventario["fecha"],
+        x=inventario["Fecha"],
         y=inventario["recurrencia [Min]"],
         name='asd'
     )
@@ -132,7 +132,7 @@ path_video = os.path.join(path, video_selector)
 # Contenedor para el video
 prev = st.empty()
 
-prev.video(path_video)
+prev.video(path_video, format="video/mp4")
 
 # Botón de descarga
 with open(path_video, "rb") as f:

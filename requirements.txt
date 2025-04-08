@@ -23,3 +23,7 @@ pandas
 streamlit~=1.38.0
 plotly~=5.18.0
 python-dotenv==1.0.1
+pyYAML
+requests
+tqdm
+ultralytics

@@ -10,7 +10,7 @@ import os
 
 # Definición de la malla
 malla_izq: int = 106
-malla_der: int = 722#622
+malla_der: int = 690#622
 count_line: int = 270
 
 # Lista de colores en formato RGB
@@ -192,7 +192,7 @@ class Tracker:
         """
         self.next_id = 0
         self.tracks = {}  # Diccionario para almacenar los objetos rastreados
-        self.inventario = {}  # Diccionario para almacenar el inventario final del carro
+        self.inventario = {'Lavamanos': 0, 'Taza': 0, 'Onepiece': 0, 'Pedestal': 0, 'Tanque': 0}  # Diccionario para almacenar el inventario final del carro
         self.max_distance = max_distance # Distancia máxima para asociar detecciones
         self.max_lost = max_lost # Número máximo de frames sin detección antes de eliminar el objeto rastreado
 
@@ -309,10 +309,7 @@ class Tracker:
                 cv.imwrite(ruta, crop)
 
                 # Añadir al inventario
-                if track_class_names[i] in self.inventario:
-                    self.inventario[track_class_names[i]] += 1
-                else:
-                    self.inventario[track_class_names[i]] = 1
+                self.inventario[track_class_names[i]] += 1
 
                 # Marcar como contado
                 self.tracks[track_ids[i]]['counted'] = True
@@ -347,9 +344,9 @@ def save_sql(inventario_final: dict, fecha:str, alarma_choque:bool):
             index=False
         )
         log("Datos insertados correctamente.")
-    except exc.IntegrityError:
-        log('Los datos ya se encontraban en la Base de Datos.')
-    except Exception as e:
-        log(f"Error al insertar datos: {e}")
+    # except exc.IntegrityError:
+    #     log('Los datos ya se encontraban en la Base de Datos.')
+    # except Exception as e:
+    #     log(f"Error al insertar datos: {e}")
     finally:
         engine.dispose()  # Cierra la conexión

@@ -5,6 +5,7 @@ import pandas as pd
 import numpy as np
 import cv2 as cv
 import datetime
+import math
 import time
 import os
 
@@ -12,6 +13,15 @@ import os
 malla_izq: int = 106
 malla_der: int = 690#622
 count_line: int = 270
+
+# match ref
+ref_hole = cv.imread('Ref_Hole.png', 0)
+wt, ht = ref_hole.shape[::-1]
+mid: int = 370
+distance_mm: int = 150
+delta_x_ini: int = 70
+delta_x_fin: int = delta_x_ini + 50
+threshold_match_ref: float = 0.60
 
 # Lista de colores en formato RGB
 #           Rojo,               Verde,                     Azul,                Amarillo,               Magenta
@@ -315,11 +325,90 @@ class Tracker:
                 self.tracks[track_ids[i]]['counted'] = True
 
                 # Verificar choques
-                if x1 < malla_izq or (x2) > malla_der:
-                    alarma_choque = True
+                piezas_para_malla_dinamica = ['Taza', 'Onepiece']
+                if track_class_names[i] in piezas_para_malla_dinamica:
+                    mascara = np.zeros_like(frame)
+                    mascara[y1:y2,x1:x2] = frame[y1:y2,x1:x2]
+                    alarma_choque = verificar_choque(mascara, x1, y1, x2, y2, center[0])
 
         return alarma_choque
     
+def verificar_choque(mascara, x1, y1, x2, y2, centro_x):    
+    # get relacion pixel mm
+    relacion_pixel_mm = match_ref_get_relacion_pixel_mm(mascara, x1, y1, x2, y2, centro_x)
+
+    # comparar distancia con limite segun altura
+    match relacion_pixel_mm:
+        case range(0.28,0.34):
+            pass
+        case range(0.34,52):
+            pass
+        case range(48,52):
+            pass
+    
+    if centro_x < mid:
+        if x1 < malla_izq:
+            pass
+    else:
+        if x2 > malla_der:
+            pass
+
+    return
+
+
+def match_ref_get_relacion_pixel_mm(mascara, x1, y1, x2, y2, centro_x):
+    # roi segun orientacion de pieza
+    roi_top, roi_bottom, mid_crop = match_ref_get_roi(mascara, x1, y1, x2, y2, centro_x)
+
+    # match ref por hueco 
+    pos_ref_top, top_finded = match_ref_get_match(roi_top)
+    pos_ref_bottom, bottom_finded = match_ref_get_match(roi_bottom)
+    
+    # distance_pixel si no se encuentra match
+    distance_pixel = 56
+    
+    # if ambos huecos -> calcular distancia
+    if top_finded and bottom_finded:
+        distance_pixel = math.dist((x1 + 70 + pos_ref_top[0], y1 + pos_ref_top[1]),
+                                   (x1 + 70 + pos_ref_bottom[0], y1 + mid_crop + pos_ref_bottom[1]))
+
+    relacion_pixel_mm = distance_pixel / distance_mm
+    
+    return relacion_pixel_mm
+
+
+def match_ref_get_roi(mascara, x1, y1, x2, y2, centro_x):
+    mid_crop = (y2 - y1) // 2
+    # Mirando a la izquierda
+    if centro_x < mid:
+        roi_top = mascara[y1:y1 + mid_crop, x2 - delta_x_ini:x2 - delta_x_fin]
+        roi_bottom = mascara[y1 + mid_crop:y2, x2 - delta_x_ini:x2 - delta_x_fin]
+    else:
+        roi_top = mascara[y1:y1 + mid_crop, x1 + delta_x_ini:x1 + delta_x_fin ]
+        roi_bottom = mascara[y1 + mid_crop:y2, x1 + delta_x_ini:x1 + delta_x_fin ]
+    
+    return roi_top, roi_bottom, mid_crop
+
+def match_ref_get_match(roi):
+    
+    res_h1 = cv.matchTemplate(roi, ref_hole, cv.TM_CCOEFF_NORMED)
+    _, max_val, _, max_loc = cv.minMaxLoc(res_h1)
+
+    pos_ref = None
+    finded = False
+
+    if max_val > threshold_match_ref:
+        top_left = max_loc
+        bottom_right = (top_left[0] + wt, top_left[1] + ht)
+
+        pos_ref = [0, 0]
+        pos_ref[0] = int(((bottom_right[0] - top_left[0]) / 2) + top_left[0])
+        pos_ref[1] = int(((bottom_right[1] - top_left[1]) / 2) + top_left[1])
+
+        finded = True
+
+    return pos_ref, finded
+
     
 def save_sql(inventario_final: dict, fecha:str, alarma_choque:bool):
     # formato fecha 'YYYY-MM-DD_hh-mm-ss'

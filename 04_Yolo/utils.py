@@ -9,11 +9,17 @@ import math
 import time
 import os
 
-# Definición de la malla
-malla_izq: int = 106
-malla_der: int = 690#622
+# ROI Deteccion
+roi_x1: int = 56
+roi_x2: int = 740
+roi_y1: int = 175
+roi_y2:int = 450
 count_line: int = 270
+
+# Sistema posible colisión
 mid: int = 370
+lim_izq: int = 355 # -15
+lim_der: int = 385 # +15
 path_alarma: str = '../00_Data/alarmas'
 if not os.path.exists(path_alarma):
     os.makedirs(path_alarma)
@@ -104,20 +110,21 @@ def draw_detections(image, box, label, confidence):
 
 
 def draw_grids(image, debug=False):
-    # malla anti choque 
-    cv.line(image, (malla_izq, 150), (malla_izq, 400), (26, 136, 230), 2) 
-    cv.line(image, (malla_der, 150), (malla_der, 400), (26, 136, 230), 2) 
+    # ROI Deteccion
+    cv.line(image, (roi_x1, roi_y1), (roi_x1, roi_y2), (26, 136, 230), 2) 
+    cv.line(image, (roi_x2, roi_y1), (roi_x2, roi_y2), (26, 136, 230), 2) 
 
     # linea de conteo
-    cv.line(image, (malla_izq, count_line), (malla_der, count_line), (26, 55, 230), 2)
+    cv.line(image, (roi_x1, count_line), (roi_x2, count_line), (26, 55, 230), 2)
 
     if debug:
         # Malla/cruz para nivelar y centrar la camara manualmente
         # get image shape
         h, w = image.shape[:2]
-        cv.line(image, (370, 0), (370, h), (26, 136, 230), 2)
-        cv.line(image, (355, 0), (360, h), (26, 55, 230), 2)
-        cv.line(image, (385, 0), (380, h), (26, 55, 230), 2)
+        # Sistema anti colision
+        cv.line(image, (mid, 0), (mid, h), (26, 136, 230), 2)
+        cv.line(image, (lim_izq, 0), (lim_izq, h), (26, 55, 230), 2)
+        cv.line(image, (lim_der, 0), (lim_der, h), (26, 55, 230), 2)
         # draw crosshair in the center of the image
         # cv.line(image, (w // 2, 0), (w // 2, h), (0, 255, 0), 2)
         # cv.line(image, (0, h // 2), (w, h // 2), (0, 255, 0), 2)
@@ -192,7 +199,7 @@ def preparar_img(img):
     # Mascara
     blank = np.zeros(img_final.shape[:2], dtype='uint8')
     # Area seleccion ROI 
-    cv.rectangle(blank, (malla_izq-50, 175), (malla_der + 50, 450), 255, -1)
+    cv.rectangle(blank, (roi_x1, roi_y1), (roi_x2, roi_y2), 255, -1)
     mascara = cv.bitwise_and(img_final,img_final,mask=blank)
     cv.imwrite('mask.png', mascara)
     
@@ -335,19 +342,21 @@ class Tracker:
                 if track_class_names[i] in piezas_para_malla_dinamica:
                     if center[0] < mid:
                         # Izquierda
-                        dist = x2 - mid
-                        if dist > -15:
+                        if x2 < lim_izq:
                             alarma_choque = True
                     else:
                         # Derecha
-                        dist = x1 - mid
-                        if dist < 15:
+                        if x1 > lim_der:
                             alarma_choque = True
-                if alarma_choque:
-                    mascara = frame
-                    cv.rectangle(mascara, (x1, y1), (x2, y2), (0, 255, 0), 2)
-                    ruta_alarma = os.path.join(path_alarma, f'{time.strftime("%Y-%m-%d_%H-%M-%S")}.png')
-                    cv.imwrite(ruta_alarma, mascara)
+
+                    if alarma_choque:
+                        mascara = frame
+                        cv.rectangle(mascara, (x1, y1), (x2, y2), (0, 255, 0), 2)
+                        cv.line(mascara, (mid, y1), (mid, y2), (26, 136, 230), 2)
+                        cv.line(mascara, (lim_izq, y1), (lim_izq, y2), (26, 55, 230), 2)
+                        cv.line(mascara, (lim_der, y1), (lim_der, y2), (26, 55, 230), 2)
+                        ruta_alarma = os.path.join(path_alarma, f'{time.strftime("%Y-%m-%d_%H-%M-%S")}.png')
+                        cv.imwrite(ruta_alarma, mascara)
 
         return alarma_choque
 

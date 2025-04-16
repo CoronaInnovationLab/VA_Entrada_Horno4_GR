@@ -13,11 +13,14 @@ import os
 malla_izq: int = 106
 malla_der: int = 690#622
 count_line: int = 270
+mid: int = 370
+path_alarma: str = '../00_Data/alarmas'
+if not os.path.exists(path_alarma):
+    os.makedirs(path_alarma)
 
 # match ref
 ref_hole = cv.imread('Ref_Hole.png', 0)
 wt, ht = ref_hole.shape[::-1]
-mid: int = 370
 distance_mm: int = 150
 delta_x_ini: int = 70
 delta_x_fin: int = delta_x_ini + 50
@@ -112,9 +115,12 @@ def draw_grids(image, debug=False):
         # Malla/cruz para nivelar y centrar la camara manualmente
         # get image shape
         h, w = image.shape[:2]
+        cv.line(image, (370, 0), (370, h), (26, 136, 230), 2)
+        cv.line(image, (355, 0), (360, h), (26, 55, 230), 2)
+        cv.line(image, (385, 0), (380, h), (26, 55, 230), 2)
         # draw crosshair in the center of the image
-        cv.line(image, (w // 2, 0), (w // 2, h), (0, 255, 0), 2)
-        cv.line(image, (0, h // 2), (w, h // 2), (0, 255, 0), 2)
+        # cv.line(image, (w // 2, 0), (w // 2, h), (0, 255, 0), 2)
+        # cv.line(image, (0, h // 2), (w, h // 2), (0, 255, 0), 2)
 
     return image
 
@@ -324,36 +330,26 @@ class Tracker:
                 # Marcar como contado
                 self.tracks[track_ids[i]]['counted'] = True
 
-                # Verificar choques
+                # Verificar choques, solo tazas y onepiece
                 piezas_para_malla_dinamica = ['Taza', 'Onepiece']
                 if track_class_names[i] in piezas_para_malla_dinamica:
-                    mascara = np.zeros_like(frame)
-                    mascara[y1:y2,x1:x2] = frame[y1:y2,x1:x2]
-                    alarma_choque = verificar_choque(mascara, x1, y1, x2, y2, center[0])
+                    if center[0] < mid:
+                        # Izquierda
+                        dist = x2 - mid
+                        if dist > -15:
+                            alarma_choque = True
+                    else:
+                        # Derecha
+                        dist = x1 - mid
+                        if dist < 15:
+                            alarma_choque = True
+                if alarma_choque:
+                    mascara = frame
+                    cv.rectangle(mascara, (x1, y1), (x2, y2), (0, 255, 0), 2)
+                    ruta_alarma = os.path.join(path_alarma, f'{time.strftime("%Y-%m-%d_%H-%M-%S")}.png')
+                    cv.imwrite(ruta_alarma, mascara)
 
         return alarma_choque
-    
-def verificar_choque(mascara, x1, y1, x2, y2, centro_x):    
-    # get relacion pixel mm
-    relacion_pixel_mm = match_ref_get_relacion_pixel_mm(mascara, x1, y1, x2, y2, centro_x)
-
-    # comparar distancia con limite segun altura
-    match relacion_pixel_mm:
-        case range(0.28,0.34):
-            pass
-        case range(0.34,52):
-            pass
-        case range(48,52):
-            pass
-    
-    if centro_x < mid:
-        if x1 < malla_izq:
-            pass
-    else:
-        if x2 > malla_der:
-            pass
-
-    return
 
 
 def match_ref_get_relacion_pixel_mm(mascara, x1, y1, x2, y2, centro_x):
@@ -369,8 +365,8 @@ def match_ref_get_relacion_pixel_mm(mascara, x1, y1, x2, y2, centro_x):
     
     # if ambos huecos -> calcular distancia
     if top_finded and bottom_finded:
-        distance_pixel = math.dist((x1 + 70 + pos_ref_top[0], y1 + pos_ref_top[1]),
-                                   (x1 + 70 + pos_ref_bottom[0], y1 + mid_crop + pos_ref_bottom[1]))
+        distance_pixel = math.dist((x1 + delta_x_ini + pos_ref_top[0], y1 + pos_ref_top[1]),
+                                   (x1 + delta_x_ini + pos_ref_bottom[0], y1 + mid_crop + pos_ref_bottom[1]))
 
     relacion_pixel_mm = distance_pixel / distance_mm
     

@@ -1,6 +1,20 @@
 # PREVISUALIZACION DE BIBLIOTECA DE VIDEOS
 # ANALISIS DE INVENTARIOS DESDE DB 
 
+
+# TODO
+# encabezado e intro
+# selector dia y rango
+# tabla: quitar indice ... estetica
+#  por defecto escondida y boton descarga
+# dia 6 a 6 
+# turnos 6-2 (1:59:59.9999999), 2-10 , 10-6
+ # grifica de piezas totales, filtros barra apilada
+        # detalle dia : barra apilada por hora individual
+# analisis por turnos: barra apilada
+# Frecuencia de entrada carro : boxplot por dia
+
+
 from sqlalchemy import create_engine, exc, URL
 import plotly.graph_objects as go
 from dotenv import load_dotenv

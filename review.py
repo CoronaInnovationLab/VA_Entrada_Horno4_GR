@@ -13,6 +13,8 @@ import math
 import time
 import os
 
+# Settings page
+st.set_page_config(page_title='Inventario H4', page_icon='./assets/logo_corona.png', layout="wide")
 
 # ******************************************************
 # Configuraciones iniciales
@@ -175,7 +177,10 @@ def get_barra_apilada(df_grouped, clase, show_legend = True, group_by = 'Dia'):
 #############################
 # Main
 #############################
-st.title('Inventario')
+
+# Encabezado
+st.image('./assets/IOT_COMPLETO.jpg')
+st.divider()
 
 # Selector de periodo
 st.subheader("Selección de Periodo a Analizar")

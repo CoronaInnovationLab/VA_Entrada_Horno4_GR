@@ -1,6 +1,9 @@
 # PREVISUALIZACION DE BIBLIOTECA DE VIDEOS
 # ANALISIS DE INVENTARIOS DESDE DB 
 
+# TODO
+# Cambiar dia 6 a 6
+
 from sqlalchemy import create_engine, exc, URL
 from plotly.subplots import make_subplots
 import plotly.graph_objects as go
@@ -224,6 +227,8 @@ start_time = time.time()
 with st.spinner('Descargando la información...'):
     if sel_dia_fin == '':
         sel_dia_fin = add_day(str(sel_dia_ini))
+    else:
+        sel_dia_fin = add_day(str(sel_dia_fin))
 
     # Consultar datos    
     inventario = get_sql(str(sel_dia_ini),str(sel_dia_fin))

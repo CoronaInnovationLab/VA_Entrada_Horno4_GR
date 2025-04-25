@@ -424,7 +424,7 @@ def save_sql(inventario_final: dict, fecha:str, alarma_choque:bool):
     inventario_final['Fecha'] = nombre
     inventario_final['Colision'] = 1 if alarma_choque else 0
     df = pd.DataFrame(inventario_final, index=[inventario_final['Fecha']])
-    log(df)
+    # log(df)
     
     # Connect to DB
     engine = create_engine(connection_url)

@@ -31,6 +31,13 @@ RECURRENCIA = 'recurrencia [Min]'
 POR_DIA = 'Por día'
 POR_RANGO_DIA = 'Por rango de días'
 clases = ['Lavamanos', 'Onepiece', 'Pedestal', 'Tanque', 'Taza']
+color_por_clase = {
+    'Lavamanos': 'red',
+    'Onepiece': 'blue',
+    'Pedestal': 'green',
+    'Tanque': 'orange',
+    'Taza': 'purple'
+}
 
 
 # ******************************************************
@@ -110,7 +117,6 @@ def convertir_a_cuadro(val):
 
 def graficar_apilado_dias(df):
     fig = go.Figure()
-    df['Fecha'] = pd.to_datetime(df['Fecha'])
     df_grouped = df.groupby('Dia')[clases].sum().reset_index()
 
     for clase in clases:
@@ -126,6 +132,27 @@ def graficar_apilado_dias(df):
 
     return fig
 
+
+def graficar_apilado_horas(df,dia):
+    fig = go.Figure()
+    df_grouped = df.loc[df['Dia']==dia]
+    df_grouped = df_grouped.groupby('Hora')[clases].sum().reset_index()
+
+    for clase in clases:
+        fig.add_trace(get_barra_apilada(df_grouped, clase, group_by='Hora'))
+
+    fig.update_layout(
+        barmode='stack',
+        height=400,
+        width=900,
+        title_text="Resumen inventario dia " + str(dia) + ".",
+        template='plotly_white',
+        
+    )
+
+    return fig
+
+
 def graficar_apilado_turnos(lista_dfs):
     fig = make_subplots(
         rows=1, cols=3,
@@ -134,11 +161,10 @@ def graficar_apilado_turnos(lista_dfs):
     )
 
     for i, df in enumerate(lista_dfs):
-        df['Fecha'] = pd.to_datetime(df['Fecha'])
         df_grouped = df.groupby('Dia')[clases].sum().reset_index()
 
         for clase in clases:
-            fig.add_trace(get_barra_apilada(df_grouped, clase), row=1, col=i+1)
+            fig.add_trace(get_barra_apilada(df_grouped, clase, (i==0)), row=1, col=i+1)
 
     fig.update_layout(
         barmode='stack',
@@ -151,13 +177,15 @@ def graficar_apilado_turnos(lista_dfs):
     return fig
 
 
-def get_barra_apilada(df_grouped, clase):
+def get_barra_apilada(df_grouped, clase, show_legend = True, group_by = 'Dia'):
     
     return go.Bar(
-        x=df_grouped['Dia'],
+        x=df_grouped[group_by],
         y=df_grouped[clase],
         name=clase,
-        showlegend=True
+        legendgroup=clase,
+        showlegend=show_legend,
+        marker=dict(color=color_por_clase.get(clase, 'gray'))
     )
 
 #############################
@@ -204,48 +232,52 @@ with col2:
 
 # Get data
 descargar = col1.button("Graficar")
-if descargar is True:
-    # Descargando la información
-    start_time = time.time()
-    with st.spinner('Descargando la información...'):
-        if sel_dia_fin == '':
-            sel_dia_fin = add_day(str(sel_dia_ini))
+# if descargar is True:
+# Descargando la información
+start_time = time.time()
+with st.spinner('Descargando la información...'):
+    if sel_dia_fin == '':
+        sel_dia_fin = add_day(str(sel_dia_ini))
 
-        # Consultar datos    
-        inventario = get_sql(str(sel_dia_ini),str(sel_dia_fin))
+    # Consultar datos    
+    inventario = get_sql(str(sel_dia_ini),str(sel_dia_fin))
 
-        if inventario.empty:
-            st.info('No hay datos del periodo seleccionado.')
-            st.stop()
-        
-        # Resumen de tiempo
-        col3.success("Consulta realizada en %s sec" % round((time.time() - start_time),2))
-        
-        # Organizar - Calcular datos
-        inventario.sort_values(by='Fecha',inplace=True)
-        inventario[RECURRENCIA] = inventario['Fecha']- inventario['Fecha'].shift()
-        inventario[RECURRENCIA] = inventario[RECURRENCIA].iloc[1:].apply(lambda x: math.ceil(x.seconds/60))
+    if inventario.empty:
+        st.info('No hay datos del periodo seleccionado.')
+        st.stop()
     
-        # Aplicar estilo a colision
-        inventario['Colision'] = inventario['Colision'].apply(convertir_a_cuadro)
-
-        # Mostrar tabla
-        st.dataframe(inventario[['Fecha', 'Lavamanos', 'Onepiece', 'Pedestal', 'Tanque', 'Taza', RECURRENCIA, 'Colision']], 
-                    use_container_width=True, hide_index=True,)
+    # Resumen de tiempo
+    col3.success("Consulta realizada en %s sec" % round((time.time() - start_time),2))
     
+    # Organizar - Calcular datos
+    # Ordenar por fecha
+    inventario.sort_values(by='Fecha',inplace=True)
+    # Calcular recurrencia
+    inventario[RECURRENCIA] = inventario['Fecha']- inventario['Fecha'].shift()
+    inventario[RECURRENCIA] = inventario[RECURRENCIA].iloc[1:].apply(lambda x: math.ceil(x.seconds/60))
+    inventario[RECURRENCIA] = inventario[RECURRENCIA].iloc[1:].apply(lambda x: 15 if x > 50 else x)
+    # Aplicar estilo a colision
+    inventario['Colision'] = inventario['Colision'].apply(convertir_a_cuadro)
     # Crear nueva columna con el turno
     inventario['Turno'] = inventario['Fecha'].apply(asignar_turno)
-
-    # Separar la fecha
+    # Separar la fecha y hora
     inventario['Dia'] = inventario['Fecha'].dt.date
+    inventario['Hora'] = inventario['Fecha'].dt.hour
+    # inventario['Hora'] = inventario['Fecha'].dt.strftime('%Y-%m-%d %H')
 
+    # Mostrar tabla
+    st.dataframe(inventario[['Fecha', 'Lavamanos', 'Onepiece', 'Pedestal', 'Tanque', 'Taza', RECURRENCIA, 'Colision']], 
+                use_container_width=True, hide_index=True,)
+
+with st.expander('Graficas', expanded=False):
     # grafica de piezas totales, filtros barra apilada
     st.plotly_chart(graficar_apilado_dias(inventario))
-    
+
     # detalle dia : barra apilada por hora individual
-    lista_dias = [sel_dia_ini + datetime.timedelta(days=d) for d in range((sel_dia_fin - sel_dia_ini).days + 1)] 
-    st.selectbox('Selecccionar dia.',lista_dias)
-    # st.plotly_chart(get_barra_apilada())
+    lista_dias = inventario['Dia'].unique()
+    dia_ampliado = st.selectbox('Selecccionar dia.',lista_dias)
+
+    st.plotly_chart(graficar_apilado_horas(inventario, dia_ampliado))
 
     #-----
     turno1 = inventario[inventario['Turno'] == 'Turno 1']
@@ -255,43 +287,24 @@ if descargar is True:
     # analisis por turnos: barra apilada
     st.plotly_chart(graficar_apilado_turnos([turno1,turno2,turno3]))
 
-
-
-
-    
-    
-    
     # Frecuencia de entrada carro : boxplot por dia
-
-# # Resumen de totales
-# class_names = ['Lavamanos', 'Onepiece', 'Pedestal', 'Tanque', 'Taza']
-# totales = inventario[class_names].sum(axis=0)
-# totales: dict = {key: total for key, total in zip(class_names, totales)}
-# st.info(f'Total: {totales}')
-
-# # Grafica recurrencia
-# fig = go.Figure(
-#     go.Bar(
-#         x=inventario["Fecha"],
-#         y=inventario["recurrencia [Min]"],
-#         name='asd'
-#     )
-# )
-
-# # # Grafica 2
-# frecuencia = inventario.groupby('recurrencia [Min]')[RECURRENCIA].count().reset_index(name="frecuencia")
-
-# fig2 = go.Figure(
-#     go.Bar(
-#         x=frecuencia["recurrencia [Min]"],
-#         y=frecuencia["frecuencia"],
-#     )
-# )
-
-# fig.update_layout(title_text='Periodo de frecuencia entrada de carros')
-# fig2.update_layout(title_text='Distribucion de frecuencias.')
-# st.plotly_chart(fig)
-# st.plotly_chart(fig2)
+    box_recurrencia_dia = go.Figure()
+    box_recurrencia_dia.add_trace(go.Box(
+        x=inventario['Dia'],
+        y=inventario[RECURRENCIA],
+    ))
+    box_recurrencia_dia.update_layout(
+            barmode='stack',
+            height=400,
+            width=900,
+            title_text="Frecuencia entrada de carros.",
+            template='plotly_white',
+            yaxis=dict(
+                title=dict(
+                    text=RECURRENCIA)
+            ),    
+    )
+    st.plotly_chart(box_recurrencia_dia)
 
 # # Obtener videos
 # path_videos = os.listdir(path)

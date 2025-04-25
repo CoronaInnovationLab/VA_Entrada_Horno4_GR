@@ -230,10 +230,7 @@ with col2:
         else:
             st.info("Analizaras un periodo de tiempo de " + str((sel_dia_fin - sel_dia_ini).days + 1) + " días.")      
 
-# Get data
-descargar = col1.button("Graficar")
-# if descargar is True:
-# Descargando la información
+# Descargar la información
 start_time = time.time()
 with st.spinner('Descargando la información...'):
     if sel_dia_fin == '':
@@ -268,6 +265,28 @@ with st.spinner('Descargando la información...'):
     # Mostrar tabla
     st.dataframe(inventario[['Fecha', 'Lavamanos', 'Onepiece', 'Pedestal', 'Tanque', 'Taza', RECURRENCIA, 'Colision']], 
                 use_container_width=True, hide_index=True,)
+
+
+with st.expander('Videos', expanded=False):
+    # Obtener videos
+    path_videos = os.listdir(path)
+    # seleccionar video
+    video_selector = st.selectbox('Seleccione el video deseado', path_videos, index=0)
+    path_video = os.path.join(path, video_selector)
+    # Contenedor para el video
+    prev = st.empty()
+    # mostrar
+    prev.video(path_video, format="video/mp4")
+
+    # Botón de descarga
+    with open(path_video, "rb") as f:
+        video_bytes = f.read()
+    st.download_button(
+        label="Descargar Video",
+        data=video_bytes,
+        file_name=video_selector,
+        mime="video/mp4",
+        )
 
 with st.expander('Graficas', expanded=False):
     # grafica de piezas totales, filtros barra apilada
@@ -305,26 +324,3 @@ with st.expander('Graficas', expanded=False):
             ),    
     )
     st.plotly_chart(box_recurrencia_dia)
-
-# # Obtener videos
-# path_videos = os.listdir(path)
-
-# # Título y selector de video
-# st.title('Preview')
-# video_selector = st.selectbox('Seleccione el video deseado', path_videos, index=0)
-# path_video = os.path.join(path, video_selector)
-
-# # Contenedor para el video
-# prev = st.empty()
-
-# prev.video(path_video, format="video/mp4")
-
-# # Botón de descarga
-# with open(path_video, "rb") as f:
-#     video_bytes = f.read()
-# st.download_button(
-#     label="Descargar Video",
-#     data=video_bytes,
-#     file_name=video_selector,
-#     mime="video/mp4",
-# )

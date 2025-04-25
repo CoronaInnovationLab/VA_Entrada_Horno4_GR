@@ -1,9 +1,6 @@
 # PREVISUALIZACION DE BIBLIOTECA DE VIDEOS
 # ANALISIS DE INVENTARIOS DESDE DB 
 
-# TODO
-# Cambiar dia 6 a 6
-
 from sqlalchemy import create_engine, exc, URL
 from plotly.subplots import make_subplots
 import plotly.graph_objects as go
@@ -105,7 +102,7 @@ def asignar_turno(fecha):
 
 def graficar_apilado_dias(df):
     fig = go.Figure()
-    df_grouped = df.groupby('Dia')[clases].sum().reset_index()
+    df_grouped = df.groupby('Dia_operativo')[clases].sum().reset_index()
 
     for clase in clases:
         fig.add_trace(get_barra_apilada(df_grouped, clase))
@@ -123,7 +120,7 @@ def graficar_apilado_dias(df):
 
 def graficar_apilado_horas(df,dia):
     fig = go.Figure()
-    df_grouped = df.loc[df['Dia']==dia]
+    df_grouped = df.loc[df['Dia_operativo']==dia]
     df_grouped = df_grouped.groupby('Hora')[clases].sum().reset_index()
 
     for clase in clases:
@@ -149,7 +146,7 @@ def graficar_apilado_turnos(lista_dfs):
     )
 
     for i, df in enumerate(lista_dfs):
-        df_grouped = df.groupby('Dia')[clases].sum().reset_index()
+        df_grouped = df.groupby('Dia_operativo')[clases].sum().reset_index()
 
         for clase in clases:
             fig.add_trace(get_barra_apilada(df_grouped, clase, (i==0)), row=1, col=i+1)
@@ -165,7 +162,7 @@ def graficar_apilado_turnos(lista_dfs):
     return fig
 
 
-def get_barra_apilada(df_grouped, clase, show_legend = True, group_by = 'Dia'):
+def get_barra_apilada(df_grouped, clase, show_legend = True, group_by = 'Dia_operativo'):
     
     return go.Bar(
         x=df_grouped[group_by],
@@ -252,12 +249,13 @@ with st.spinner('Descargando la información...'):
     # Crear nueva columna con el turno
     inventario['Turno'] = inventario['Fecha'].apply(asignar_turno)
     # Separar la fecha y hora
-    inventario['Dia'] = inventario['Fecha'].dt.date
+    # 'Día_operativo' ajustado a las 6:00 AM
+    inventario['Dia_operativo'] = (inventario['Fecha'] - pd.Timedelta(hours=6)).dt.date
     inventario['Hora'] = inventario['Fecha'].dt.hour
     # inventario['Hora'] = inventario['Fecha'].dt.strftime('%Y-%m-%d %H')
 
     # Mostrar tabla
-    st.dataframe(inventario[['Fecha', 'Lavamanos', 'Onepiece', 'Pedestal', 'Tanque', 'Taza', RECURRENCIA, 'Colision']], 
+    st.dataframe(inventario[['Fecha', 'Dia_operativo', 'Lavamanos', 'Onepiece', 'Pedestal', 'Tanque', 'Taza', RECURRENCIA, 'Colision']], 
                 use_container_width=True, hide_index=True,)
 
 
@@ -287,7 +285,7 @@ with st.expander('Graficas', expanded=False):
     st.plotly_chart(graficar_apilado_dias(inventario))
 
     # detalle dia : barra apilada por hora individual
-    lista_dias = inventario['Dia'].unique()
+    lista_dias = inventario['Dia_operativo'].unique()
     dia_ampliado = st.selectbox('Selecccionar dia.',lista_dias)
 
     st.plotly_chart(graficar_apilado_horas(inventario, dia_ampliado))
@@ -303,7 +301,7 @@ with st.expander('Graficas', expanded=False):
     # Frecuencia de entrada carro : boxplot por dia
     box_recurrencia_dia = go.Figure()
     box_recurrencia_dia.add_trace(go.Box(
-        x=inventario['Dia'],
+        x=inventario['Dia_operativo'],
         y=inventario[RECURRENCIA],
     ))
     box_recurrencia_dia.update_layout(

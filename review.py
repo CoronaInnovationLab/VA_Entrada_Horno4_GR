@@ -1,13 +1,6 @@
 # PREVISUALIZACION DE BIBLIOTECA DE VIDEOS
 # ANALISIS DE INVENTARIOS DESDE DB 
 
-
-# TODO
-# Encabezado e intro
-
-# Tabla por defecto escondida y boton descarga
-
-
 from sqlalchemy import create_engine, exc, URL
 from plotly.subplots import make_subplots
 import plotly.graph_objects as go
@@ -24,8 +17,6 @@ import os
 # ******************************************************
 # Configuraciones iniciales
 # ******************************************************
-
-debug_mode: bool = True
 path: str = '00_Data/videos/inferencias'
 RECURRENCIA = 'recurrencia [Min]'
 POR_DIA = 'Por día'
@@ -38,6 +29,8 @@ color_por_clase = {
     'Tanque': 'orange',
     'Taza': 'purple'
 }
+media_recurrencia:int = 15
+limite_recurrencia:int = 30
 
 
 # ******************************************************
@@ -53,12 +46,6 @@ tabla = 'entrada_H4_GR'
 # Connecting to the sql database
 connection_str = "DRIVER={ODBC Driver 17 for SQL Server};SERVER=%s;DATABASE=%s;UID=%s;PWD=%s;Encrypt=no" % (server, database, username, password)
 connection_url = URL.create("mssql+pyodbc", query={"odbc_connect": connection_str})
-
-
-def log(msg:str):
-    if debug_mode:
-        print(f'[{datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}] {msg}\n')
-
 
 def add_day(day, add=1):
     """
@@ -91,7 +78,8 @@ def get_sql(sel_dia_ini:str = '2025-04-03', sel_dia_fin:str = '2025-04-04') -> p
             QUERY = "SELECT * FROM [{}].[dbo].[{}] WHERE (Fecha BETWEEN '{}' AND '{}')"
             df = pd.read_sql_query(QUERY.format(database, tabla, sel_dia_ini, sel_dia_fin), connection)
     except (exc.TimeoutError, pyodbc.OperationalError):
-        log("La consulta ha superado el tiempo límite.")
+        st.error("La consulta ha superado el tiempo límite.")
+        st.stop
     finally:
         conn.dispose()  # Close the connection
 
@@ -102,7 +90,6 @@ def get_sql(sel_dia_ini:str = '2025-04-03', sel_dia_fin:str = '2025-04-04') -> p
 def asignar_turno(fecha):
     # turnos 6-2 (1:59:59.9999999), 2-10 , 10-6
     hora = fecha.time()
-
     if datetime.time(6, 0) <= hora < datetime.time(14, 0):
         return 'Turno 1'
     elif datetime.time(14, 0) <= hora < datetime.time(22, 0):
@@ -110,10 +97,6 @@ def asignar_turno(fecha):
     else:
         return 'Turno 3'
 
-
-# Mapear los valores a cuadros coloreados (Unicode cuadrados)
-def convertir_a_cuadro(val):
-    return '🟥' if val == 1 else '🟩'
 
 def graficar_apilado_dias(df):
     fig = go.Figure()
@@ -188,6 +171,7 @@ def get_barra_apilada(df_grouped, clase, show_legend = True, group_by = 'Dia'):
         marker=dict(color=color_por_clase.get(clase, 'gray'))
     )
 
+
 #############################
 # Main
 #############################
@@ -252,9 +236,9 @@ with st.spinner('Descargando la información...'):
     # Calcular recurrencia
     inventario[RECURRENCIA] = inventario['Fecha']- inventario['Fecha'].shift()
     inventario[RECURRENCIA] = inventario[RECURRENCIA].iloc[1:].apply(lambda x: math.ceil(x.seconds/60))
-    inventario[RECURRENCIA] = inventario[RECURRENCIA].iloc[1:].apply(lambda x: 15 if x > 50 else x)
+    inventario[RECURRENCIA] = inventario[RECURRENCIA].iloc[1:].apply(lambda x: media_recurrencia if x > limite_recurrencia else x)
     # Aplicar estilo a colision
-    inventario['Colision'] = inventario['Colision'].apply(convertir_a_cuadro)
+    inventario['Colision'] = inventario['Colision'].apply(lambda x: '🟥' if x == 1 else '🟩')
     # Crear nueva columna con el turno
     inventario['Turno'] = inventario['Fecha'].apply(asignar_turno)
     # Separar la fecha y hora

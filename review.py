@@ -1,6 +1,9 @@
 # PREVISUALIZACION DE BIBLIOTECA DE VIDEOS
 # ANALISIS DE INVENTARIOS DESDE DB 
 
+# total numerico por barras y seleccion
+# revisar grafica por horas
+
 from sqlalchemy import create_engine, exc, URL
 from plotly.subplots import make_subplots
 import plotly.graph_objects as go
@@ -106,6 +109,8 @@ def graficar_apilado_dias(df):
 
     for clase in clases:
         fig.add_trace(get_barra_apilada(df_grouped, clase))
+    
+    fig.add_trace(get_scatter_totales(df_grouped))
 
     fig.update_layout(
         barmode='stack',
@@ -122,9 +127,15 @@ def graficar_apilado_horas(df,dia):
     fig = go.Figure()
     df_grouped = df.loc[df['Dia_operativo']==dia]
     df_grouped = df_grouped.groupby('Hora')[clases].sum().reset_index()
+    df_grouped['Hora_rotada'] = df_grouped['Hora'].apply(lambda h: h if h >= 6 else h + 24)
+
+    # Ordenar por esta hora rotada
+    df_grouped = df_grouped.sort_values('Hora_rotada')
 
     for clase in clases:
         fig.add_trace(get_barra_apilada(df_grouped, clase, group_by='Hora'))
+
+    fig.add_trace(get_scatter_totales(df_grouped, group_by = 'Hora'))
 
     fig.update_layout(
         barmode='stack',
@@ -147,9 +158,10 @@ def graficar_apilado_turnos(lista_dfs):
 
     for i, df in enumerate(lista_dfs):
         df_grouped = df.groupby('Dia_operativo')[clases].sum().reset_index()
-
         for clase in clases:
             fig.add_trace(get_barra_apilada(df_grouped, clase, (i==0)), row=1, col=i+1)
+
+        fig.add_trace(get_scatter_totales(df_grouped),row=1, col=i+1)
 
     fig.update_layout(
         barmode='stack',
@@ -162,15 +174,30 @@ def graficar_apilado_turnos(lista_dfs):
     return fig
 
 
+def get_scatter_totales(df_grouped, group_by = 'Dia_operativo'):
+    totales = df_grouped[clases].sum(axis = 1, numeric_only=True)
+
+    return go.Scatter(
+        x=df_grouped[group_by] if group_by == 'Dia_operativo' else df_grouped['Hora'].astype(str).tolist(),
+        y=totales, 
+        text=totales,
+        mode='text',
+        textposition='top center',
+        textfont=dict(size=9,),
+        showlegend=False
+    )
+            
+
 def get_barra_apilada(df_grouped, clase, show_legend = True, group_by = 'Dia_operativo'):
-    
     return go.Bar(
-        x=df_grouped[group_by],
+        x=df_grouped[group_by] if group_by == 'Dia_operativo' else df_grouped['Hora'].astype(str).tolist(),
         y=df_grouped[clase],
         name=clase,
         legendgroup=clase,
         showlegend=show_legend,
-        marker=dict(color=color_por_clase.get(clase, 'gray'))
+        marker=dict(color=color_por_clase.get(clase, 'gray')),
+        text=df_grouped[clase],
+        textfont=dict(size=9,)
     )
 
 
@@ -195,9 +222,8 @@ with col1:
 with col2:
     # Opciones por día
     if sel_fecha == POR_DIA:
-        sel_dia_ini = st.date_input("¿Que dia desea analizar?", datetime.date.today() -
-                                    datetime.timedelta(days=1), key="dia")
-        if sel_dia_ini >= datetime.date.today():
+        sel_dia_ini = st.date_input("¿Que dia desea analizar?", datetime.date.today(), key="dia")
+        if sel_dia_ini > datetime.date.today():
             st.error("Recuerda que el día seleccionado no puede ser superior a la día actual")
             st.stop()
         st.info("Analizaras el día " + str(sel_dia_ini))
@@ -254,6 +280,9 @@ with st.spinner('Descargando la información...'):
     inventario['Hora'] = inventario['Fecha'].dt.hour
     # inventario['Hora'] = inventario['Fecha'].dt.strftime('%Y-%m-%d %H')
 
+    # Metrica total de piezas
+    col1.metric('Total de piezas', inventario[clases].sum().sum())
+
     # Mostrar tabla
     st.dataframe(inventario[['Fecha', 'Dia_operativo', 'Lavamanos', 'Onepiece', 'Pedestal', 'Tanque', 'Taza', RECURRENCIA, 'Colision']], 
                 use_container_width=True, hide_index=True,)
@@ -261,7 +290,7 @@ with st.spinner('Descargando la información...'):
 
 with st.expander('Videos', expanded=False):
     # Obtener videos
-    path_videos = os.listdir(path)
+    path_videos = sorted(os.listdir(path), reverse=True)
     # seleccionar video
     video_selector = st.selectbox('Seleccione el video deseado', path_videos, index=0)
     path_video = os.path.join(path, video_selector)

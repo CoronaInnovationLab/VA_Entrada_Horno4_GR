@@ -78,10 +78,10 @@ while True:
 
                 fps = 23
                 fourcc = 0x00000021#cv.VideoWriter_fourcc(*'mp4v')
-                # fourccraw = cv.VideoWriter_fourcc(*'mpv4')
+                fourccraw = 0x00000021#cv.VideoWriter_fourcc(*'mpv4')
 
                 inference = cv.VideoWriter(output_inference_path, fourcc, fps, (768, 576))
-                # raw = cv.VideoWriter(output_raw_path, fourccraw, fps, (component.width, component.height))
+                raw = cv.VideoWriter(output_raw_path, fourccraw, fps, (component.width, component.height))
 
                 video_iniciado = True
 
@@ -115,7 +115,7 @@ while True:
             frame = draw_grids(frame)
 
             # Guardar fotogramas
-            # raw.write(image)
+            raw.write(image)
             inference.write(frame)
 
             # Ver en tiempo real
@@ -128,8 +128,8 @@ while True:
                 inference.release()
                 inference = None
 
-                # raw.release()
-                # raw = None
+                raw.release()
+                raw = None
                 
                 video_iniciado = False
                 cv.destroyAllWindows()

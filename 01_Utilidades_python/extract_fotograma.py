@@ -4,10 +4,11 @@ import time
 import os
 
 # Constantes
-input_path = 'data/videos'
+input_path = r'C:\Users\horno4pg\OneDrive - Corona\Documentos\VA_Entrada_Horno4_GR\00_Data\videos'
 
 # Directorio donde se guardarán los fotogramas
-out_path = 'data/train_img_por_filtrar'
+out_path = r'C:\Users\horno4pg\OneDrive - Corona\Documentos\VA_Entrada_Horno4_GR\00_Data\Imagenes'
+
 if not os.path.exists(out_path):
     os.makedirs(out_path)
 
@@ -16,7 +17,7 @@ frame_interval = 100
 
 def preparar_img(img):
 
-    # # Convertir la imagen a formato BGR para OpenCV
+    # Convertir la imagen a formato BGR para OpenCV
     # img = cv.cvtColor(img, cv.COLOR_BAYER_BG2BGR)
 
     # Corregir distorsion
@@ -43,7 +44,6 @@ def preparar_img(img):
     # -------------------------------------------------------------------------------------------------
     # Resize
     recorte = cv.resize(dst, (768, 576), interpolation=cv.INTER_CUBIC)
-    # recorte = cv.resize(img, (768, 576), interpolation=cv.INTER_CUBIC)
 
     img_final = recorte
     
@@ -53,12 +53,15 @@ def preparar_img(img):
 # main
 
 paths = os.listdir(input_path)
+print(paths)
 
 for video_path in paths:
 
     video_path = os.path.join(input_path,video_path)
     # Abrir el video con OpenCV
     cap = cv.VideoCapture(video_path)
+    video_name = video_path.split('\\')[-1]
+    # print(out_path, video_name)
 
     # Inicializar el contador de fotogramas
     frame_number = 0
@@ -73,8 +76,8 @@ for video_path in paths:
         # Solo guardar el fotograma si es múltiplo del intervalo
         if frame_number % frame_interval == 0 and frame_number >= frame_interval:
             # Generar el nombre del archivo para el fotograma
-            frame_filename = os.path.join(out_path, f'{video_path[18:-4]}_{frame_number}.png')
-
+            frame_filename = os.path.join(out_path, f'{video_name[:-4]}_{frame_number}.png')
+            
             # preprocesar
             frame = preparar_img(frame)
 
@@ -86,4 +89,4 @@ for video_path in paths:
 
     # Liberar el video y cerrar todas las ventanas
     cap.release()
-    print(f'Extracción de fotogramas para el video {video_path} completada.')
+    print(f'Extracción de fotogramas para el video {video_name} completada.')

@@ -1,4 +1,4 @@
-from utils import draw_detections, draw_grids, show_inventary, preparar_img, Tracker, save_sql, log
+from utils import draw_detections, draw_grids, show_inventary, preparar_img, preparar_img_raw, Tracker, save_sql, log
 from harvesters.core import Harvester
 from ultralytics import YOLO
 import numpy as np
@@ -87,6 +87,7 @@ while True:
 
             # Preprocesar la imagen
             frame, roi = preparar_img(image)
+            image = preparar_img_raw(image)
 
             # Inferir
             results = model.predict(source=roi, conf=min_confidence, iou=min_iou, device=device, verbose=False)

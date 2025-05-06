@@ -160,6 +160,18 @@ def show_inventary(frame, inventario):
         x += text_size[0] * 1.5
 
 
+def preparar_img_raw(img):
+    '''
+    Preprocesado de la imagen
+    '''
+    # Convertir la imagen a formato BGR para OpenCV 
+    # Solo cuando se trabaja con la camara
+    img = cv.cvtColor(img, cv.COLOR_BAYER_BG2BGR)
+
+    return img
+
+
+
 def preparar_img(img):
     '''
     Preprocesado de la imagen, realiza correccion de ojo de pez y resize a 800x600

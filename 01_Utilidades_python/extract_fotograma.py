@@ -13,12 +13,12 @@ if not os.path.exists(out_path):
     os.makedirs(out_path)
 
 # Intervalo de fotogramas (por ejemplo, extraer cada 10 fotogramas)
-frame_interval = 100
+frame_interval = 40
 
 def preparar_img(img):
 
     # Convertir la imagen a formato BGR para OpenCV
-    # img = cv.cvtColor(img, cv.COLOR_BAYER_BG2BGR)
+    # img = cv.cvtColor(img, cv.COLOR_BGR2RGB)
 
     # Corregir distorsion
     # Matriz de cámara
@@ -52,7 +52,7 @@ def preparar_img(img):
 ########################################3
 # main
 
-paths = os.listdir(input_path)
+paths = sorted(os.listdir(input_path), reverse=True)[1:]
 print(paths)
 
 for video_path in paths:

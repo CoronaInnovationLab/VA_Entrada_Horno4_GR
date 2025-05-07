@@ -1,5 +1,7 @@
 from scipy.spatial.distance import cdist
+from exceptions import DeviceAccessStatusError
 from sqlalchemy import create_engine, exc, URL
+from harvesters.core import Harvester
 from dotenv import load_dotenv
 import pandas as pd
 import numpy as np
@@ -7,6 +9,7 @@ import cv2 as cv
 import datetime
 import math
 import time
+import sys
 import os
 
 # ROI Deteccion
@@ -36,6 +39,16 @@ threshold_match_ref: float = 0.60
 #           Rojo,               Verde,                     Azul,                Amarillo,               Magenta
 colores = {'Taza':(255, 0, 0), 'Lavamanos':(0, 255, 0), 'Onepiece':(0, 0, 255), 'Tanque':(255, 255, 0), 'Pedestal':(255, 0, 255)}
 
+# lista de camaras
+camaras = {'entrada':
+            {
+                'serial_number': 'H2387790'
+            },
+            'salida':
+            {
+                'serial_number': 'H2399988'
+            }    
+        }
 
 # Parametros conexion SQL
 load_dotenv()
@@ -49,9 +62,40 @@ tabla = 'entrada_H4_GR'
 connection_str = "DRIVER={ODBC Driver 17 for SQL Server};SERVER=%s;DATABASE=%s;UID=%s;PWD=%s;Encrypt=no" % (server, database, username, password)
 connection_url = URL.create("mssql+pyodbc", query={"odbc_connect": connection_str})
 
+# Errores personalizados
+
 
 def log(msg:str):
     print(f'[{datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}] {msg}\n')
+
+
+def conectar_camara(camara:str):
+    h = Harvester()
+
+    cti_file = "C:/Program Files/MATRIX VISION/mvIMPACT Acquire/bin/x64/mvGENTLProducer.cti"
+
+    h.add_file(cti_file)
+
+    # Actualizar la lista de cámaras disponibles
+    h.update()
+
+    try:
+        # Mostrar cámaras disponibles
+        print("Cámaras detectadas:")
+        for i, dev in enumerate(h.device_info_list):
+            print(f"[{i}] Serial: {dev.property_dict['serial_number']} - {dev.property_dict['access_status']}")
+
+        # Conectar a la segunda cámara disponible
+        ia = h.create(camaras['salida'])
+        estado = ia.device.access_status
+        print(f'Camara conectada: [{ia.device.serial_number}], status: {estado}')
+        if estado != 1:
+            raise DeviceAccessStatusError(estado)
+        
+        return h, ia
+    except Exception as e:
+        print(f'Camara no disponible: {e}')
+        sys.exit(1)
 
 
 def draw_detections(image, box, label, confidence):

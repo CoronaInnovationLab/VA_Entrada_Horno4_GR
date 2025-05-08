@@ -1,4 +1,4 @@
-from utils import draw_detections, draw_grids, show_inventary, preparar_img, preparar_img_raw, Tracker, save_sql, log
+from utils import conectar_camara, draw_detections, draw_grids, show_inventary, preparar_img, preparar_img_raw, Tracker, save_sql, log
 from harvesters.core import Harvester
 from ultralytics import YOLO
 import numpy as np
@@ -26,19 +26,7 @@ if not os.path.exists(output_path):
 # Configuracion camara y guardado de video
 # ******************************************************
 # Inicializar Harvester
-harves = Harvester()
-cti_file = "C:/Program Files/MATRIX VISION/mvIMPACT Acquire/bin/x64/mvGENTLProducer.cti"
-harves.add_file(cti_file)
-# Actualizar la lista de cámaras disponibles
-harves.update()
-try:
-    # Conectar a la primera cámara disponible
-    ia = harves.create(0)
-    log('Camara conectada')
-except Exception as e:
-    log('Camara no disponible')
-    sys.exit(1)
-
+h, ia = conectar_camara('entrada')
 ia.start()
 
 # ******************************************************
@@ -56,10 +44,11 @@ while True:
     # Capturar una imagen de la cámara
     with ia.fetch() as buffer:
         #Preguntamos si no se esta dando la confirmacion de movimiento carro
-        if ia.remote_device.node_map.LineStatus.value==False:
+        señal = ia.remote_device.node_map.LineStatus.value
+        if señal == False:
             carro_completo = False
         #Preguntamos si se esta dando la confirmacion de movimiento carro
-        if ia.remote_device.node_map.LineStatus.value == True and not carro_completo:
+        if señal == True and not carro_completo:
             # Obtener los datos del buffer
             component = buffer.payload.components[0]
 
@@ -77,7 +66,7 @@ while True:
                 output_raw_path = os.path.join(video_path, f"{video_name}_raw.mp4")
 
                 fps = 23
-                fourcc = 0x00000021#cv.VideoWriter_fourcc(*'mp4v')
+                fourcc = 0x00000021#cv.VideoWriter_fourcc(*'x264')
                 fourccraw = 0x00000021#cv.VideoWriter_fourcc(*'mpv4')
 
                 inference = cv.VideoWriter(output_inference_path, fourcc, fps, (768, 576))
@@ -121,7 +110,7 @@ while True:
 
             # Ver en tiempo real
             cv.imshow("YOLOv8 Inference", frame)
-            key = cv.waitKey(1) & 0xFF
+            key = cv.waitKey(1)
             if key == ord('q'):
                 break
 
@@ -137,5 +126,3 @@ while True:
                 #
                 save_sql(tracker.inventario, video_name, alarma_choque)
                 log(tracker.inventario)
-
-                # del tracker

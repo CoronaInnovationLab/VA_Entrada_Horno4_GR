@@ -42,7 +42,8 @@ colores = {'Taza':(255, 0, 0), 'Lavamanos':(0, 255, 0), 'Onepiece':(0, 0, 255), 
 # lista de camaras
 camaras = {'entrada':
             {
-                'serial_number': 'H2387790'
+                'serial_number': 'H2387790',
+                'vendor': 'Teledyne DALSA'
             },
             'salida':
             {
@@ -70,12 +71,10 @@ def log(msg:str):
 
 
 def conectar_camara(camara:str):
+    # Inicializar Harvester
     h = Harvester()
-
     cti_file = "C:/Program Files/MATRIX VISION/mvIMPACT Acquire/bin/x64/mvGENTLProducer.cti"
-
     h.add_file(cti_file)
-
     # Actualizar la lista de cámaras disponibles
     h.update()
 
@@ -86,10 +85,10 @@ def conectar_camara(camara:str):
             print(f"[{i}] Serial: {dev.property_dict['serial_number']} - {dev.property_dict['access_status']}")
 
         # Conectar a la segunda cámara disponible
-        ia = h.create(camaras['salida'])
+        ia = h.create(camaras[camara])
         estado = ia.device.access_status
-        print(f'Camara conectada: [{ia.device.serial_number}], status: {estado}')
-        if estado != 1:
+        print(f'\nCamara conectada: [{ia.device.serial_number}], status: {estado}')
+        if estado not in [5,6]:
             raise DeviceAccessStatusError(estado)
         
         return h, ia
@@ -209,7 +208,6 @@ def preparar_img_raw(img):
     Preprocesado de la imagen
     '''
     # Convertir la imagen a formato BGR para OpenCV 
-    # Solo cuando se trabaja con la camara
     img = cv.cvtColor(img, cv.COLOR_BAYER_BG2BGR)
 
     return img

@@ -25,31 +25,28 @@ def preparar_img(img):
 # Conexión camara y toma de imagen
 # ----------------------------------------------------------------------------------------------------------
 h, ia = conectar_camara('salida')
-
 ia.start()
+while True:
+    # Capturar una imagen de la cámara
+    with ia.fetch() as buffer:
+        señal = ia.remote_device.node_map.LineStatus.value
+        if señal:
+            print(señal)
+        # Obtener los datos del buffer
+        component = buffer.payload.components[0]
+        # Convertir los datos a una imagen numpy
+        image = component.data.reshape(component.height, component.width)
 
-# # while True: 
-# Capturar una imagen de la cámara
-with ia.fetch() as buffer:
-    print('a')
-    # Obtener los datos del buffer
-    component = buffer.payload.components[0]
-    # Convertir los datos a una imagen numpy
-    image = component.data.reshape(component.height, component.width)
+        # Preprocesar la imagen
+        frame = preparar_img(image)
 
-    # Preprocesar la imagen
-    frame = preparar_img(image)
-
-    cv.imshow('Camera Feed', frame)
-
-#     k = cv.waitKey(1)
-#     if k == ord('q'):
-#         print('Operacion terminada por el usuario.')
-#         # break
-#     elif k == ord('s'):
-#         cv.imwrite('ak.png', frame)
+        cv.imshow('Camera Feed', frame)
+        key = cv.waitKey(1)
+        if key == ord('q'):
+            break
+        elif key == ord('s'):
+            cv.imwrite('captura_salida.png', frame)
 # Detener Camara
 ia.stop()
 ia.destroy()
 h.reset()   
-# sys.exit()

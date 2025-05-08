@@ -9,7 +9,7 @@ device_access_status = {
 }
 
 class DeviceAccessStatusError(Exception):
-    """Exception raised for access status != 1:
+    """Exception raised for access status != 5,6:
     | Código | Constante                             | Significado                                                          |
     | ------ | ------------------------------------- | -------------------------------------------------------------------- |
     | `0`    | `DEVICE_ACCESS_STATUS_UNKNOWN`        | Estado desconocido                                                   |

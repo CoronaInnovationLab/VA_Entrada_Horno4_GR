@@ -24,14 +24,15 @@ def preparar_img(img):
 # ----------------------------------------------------------------------------------------------------------
 # Conexión camara y toma de imagen
 # ----------------------------------------------------------------------------------------------------------
-h, ia = conectar_camara('salida')
+h, ia = conectar_camara('salida 1')
 ia.start()
+
 while True:
     # Capturar una imagen de la cámara
     with ia.fetch() as buffer:
         señal = ia.remote_device.node_map.LineStatus.value
-        if señal:
-            print(señal)
+        # if señal:
+        print(señal)
         # Obtener los datos del buffer
         component = buffer.payload.components[0]
         # Convertir los datos a una imagen numpy

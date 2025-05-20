@@ -45,7 +45,7 @@ camaras = {'entrada':
                 'serial_number': 'H2387790',
                 'vendor': 'Teledyne DALSA'
             },
-            'salida':
+            'salida 1':
             {
                 'serial_number': 'H2399988'
             }    
@@ -86,6 +86,8 @@ def conectar_camara(camara:str):
 
         # Conectar a la segunda cámara disponible
         ia = h.create(camaras[camara])
+        # Network Config 
+        ia.remote_device.node_map.GevSCPSPacketSize.value = 1440
         estado = ia.device.access_status
         print(f'\nCamara conectada: [{ia.device.serial_number}], status: {estado}')
         if estado not in [5,6]:

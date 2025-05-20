@@ -65,7 +65,7 @@ while True:
                 output_inference_path = os.path.join(output_path, f"{video_name}_inference.mp4")
                 output_raw_path = os.path.join(video_path, f"{video_name}_raw.mp4")
 
-                fps = 23
+                fps = 10
                 fourcc = 0x00000021#cv.VideoWriter_fourcc(*'x264')
                 fourccraw = 0x00000021#cv.VideoWriter_fourcc(*'mpv4')
 

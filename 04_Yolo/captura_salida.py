@@ -25,6 +25,9 @@ def preparar_img(img):
 # Conexión camara y toma de imagen
 # ----------------------------------------------------------------------------------------------------------
 h, ia = conectar_camara('salida 1')
+
+
+
 ia.start()
 
 while True:

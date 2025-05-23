@@ -52,7 +52,7 @@ def preparar_img(img):
 ########################################3
 # main
 
-paths = sorted(os.listdir(input_path), reverse=True)[1:]
+paths = sorted(os.listdir(input_path), reverse=True)[2:]
 print(paths)
 
 for video_path in paths:

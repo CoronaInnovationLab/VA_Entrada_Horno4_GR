@@ -7,13 +7,13 @@ import os
 input_path = r'C:\Users\horno4pg\OneDrive - Corona\Documentos\VA_Entrada_Horno4_GR\00_Data\videos'
 
 # Directorio donde se guardarán los fotogramas
-out_path = r'C:\Users\horno4pg\OneDrive - Corona\Documentos\VA_Entrada_Horno4_GR\00_Data\Imagenes'
+out_path = r'C:\Users\horno4pg\OneDrive - Corona\Documentos\VA_Entrada_Horno4_GR\00_Data\Imagenes\nuevas'
 
 if not os.path.exists(out_path):
     os.makedirs(out_path)
 
 # Intervalo de fotogramas (por ejemplo, extraer cada 10 fotogramas)
-frame_interval = 40
+frame_interval = 25
 
 def preparar_img(img):
 

@@ -21,6 +21,15 @@ def preparar_img(img):
 # ----------------------------------------------------------------------------------------------------------
 h, ia = conectar_camara('salida 1')
 
+# Balance de blancos
+# ia.remote_device.node_map.BalanceWhiteAuto.value = 'Off'  # 'off' 'On Demand'
+
+balance = {'Red': 1.08001, 'Green': 1, 'Blue':1.91854}
+
+for canal, color in balance.items():
+    ia.remote_device.node_map.BalanceRatioSelector.value = canal
+    ia.remote_device.node_map.BalanceRatio.value = color
+
 captura_realizada = False
 
 while True:
@@ -56,14 +65,14 @@ while True:
         # Showing the image
         cv.imshow('Camera Feed', frame)
         cv.imwrite('captura_salida.png', frame)
-        key = cv.waitKey(5)
+        key = cv.waitKey(1)
         if key == ord('q'):
             break
         elif key == ord('s'):
             cv.imwrite('captura_salida.png', frame)
 
-
 # Detener Camara
 ia.stop()
 ia.destroy()
 h.reset()   
+# cv.destroyAllWindows()

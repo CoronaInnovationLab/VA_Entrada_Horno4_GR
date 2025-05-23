@@ -1,11 +1,7 @@
-from harvesters.core import Harvester
 from utils import conectar_camara
-import datetime
 import cv2 as cv
-import numpy as np
-import os
 import time
-import sys
+
 
 
 def preparar_img(img):
@@ -15,41 +11,58 @@ def preparar_img(img):
 
     #-------------------------------------------------------------------------------------------------
     # Resize
-    recorte = cv.resize(img, (768,576), interpolation=cv.INTER_CUBIC)
-
-    img_final = recorte
-    
+    img_final = cv.resize(img, (768,576), interpolation=cv.INTER_CUBIC)
+  
     return img_final
+
 
 # ----------------------------------------------------------------------------------------------------------
 # Conexión camara y toma de imagen
 # ----------------------------------------------------------------------------------------------------------
 h, ia = conectar_camara('salida 1')
 
-
-
-ia.start()
+captura_realizada = False
 
 while True:
-    # Capturar una imagen de la cámara
-    with ia.fetch() as buffer:
-        señal = ia.remote_device.node_map.LineStatus.value
-        # if señal:
-        print(señal)
-        # Obtener los datos del buffer
-        component = buffer.payload.components[0]
-        # Convertir los datos a una imagen numpy
-        image = component.data.reshape(component.height, component.width)
+    señal = ia.remote_device.node_map.LineStatus.value
+
+    if not señal:
+        if captura_realizada:
+            time.sleep(5)
+            cv.destroyAllWindows()
+
+    else:
+        captura_realizada = True
+        print('Iniciando captura de datos', flush=True)
+        
+        ia.start()
+        # Capturar una imagen de la cámara
+        with ia.fetch() as buffer:
+            # Obtener los datos del buffer
+            component = buffer.payload.components[0]
+
+            # Convertir los datos a una imagen numpy
+            img_original_camara = component.data.reshape(component.height, component.width)
+
+            # Crear una copia de la imagen
+            img_original_camara_copy = img_original_camara.copy()
+
+        # Detener la camara
+        ia.stop()
 
         # Preprocesar la imagen
-        frame = preparar_img(image)
+        frame = preparar_img(img_original_camara_copy)
 
+        # Showing the image
         cv.imshow('Camera Feed', frame)
-        key = cv.waitKey(1)
+        cv.imwrite('captura_salida.png', frame)
+        key = cv.waitKey(5)
         if key == ord('q'):
             break
         elif key == ord('s'):
             cv.imwrite('captura_salida.png', frame)
+
+
 # Detener Camara
 ia.stop()
 ia.destroy()

@@ -1,5 +1,4 @@
 from scipy.spatial.distance import cdist
-from exceptions import DeviceAccessStatusError
 from sqlalchemy import create_engine, exc, URL
 from harvesters.core import Harvester
 from dotenv import load_dotenv
@@ -90,8 +89,9 @@ def conectar_camara(camara:str):
         ia.remote_device.node_map.GevSCPSPacketSize.value = 1500
         estado = ia.device.access_status
         print(f'\nCamara conectada: [{ia.device.serial_number}], status: {estado}')
-        if estado not in [5,6]:
-            raise DeviceAccessStatusError(estado)
+
+        # Camera Temperature
+        print(f"La temperatura de la camara es {round(ia.remote_device.node_map.DeviceTemperature.value,2)}")
         
         return h, ia
     except Exception as e:

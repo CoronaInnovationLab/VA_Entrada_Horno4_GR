@@ -26,7 +26,7 @@ path: str = '00_Data/videos/inferencias'
 RECURRENCIA = 'recurrencia [Min]'
 POR_DIA = 'Por día'
 POR_RANGO_DIA = 'Por rango de días'
-clases = ['Lavamanos', 'Onepiece', 'Pedestal', 'Tanque', 'Taza']
+clases = ['Onepiece', 'Taza', 'Pedestal', 'Lavamanos', 'Tanque']
 color_por_clase = {
     'Lavamanos': 'red',
     'Onepiece': 'blue',
@@ -227,7 +227,7 @@ with col2:
             st.error("Recuerda que el día seleccionado no puede ser superior a la día actual")
             st.stop()
         st.info("Analizaras el día " + str(sel_dia_ini))
-
+        cantidad_dias = 1
         sel_dia_fin = ''
 
     # Opciones por rango de días
@@ -243,7 +243,8 @@ with col2:
             st.error("Recuerda que la fecha final no puede ser superior a la fecha actual")
             st.stop()
         else:
-            st.info("Analizaras un periodo de tiempo de " + str((sel_dia_fin - sel_dia_ini).days + 1) + " días.")      
+            cantidad_dias = (sel_dia_fin - sel_dia_ini).days + 1
+            st.info("Analizaras un periodo de tiempo de " + str(cantidad_dias) + " días.")      
 
 # Descargar la información
 start_time = time.time()
@@ -264,6 +265,9 @@ with st.spinner('Descargando la información...'):
     col3.success("Consulta realizada en %s sec" % round((time.time() - start_time),2))
     
     # Organizar - Calcular datos
+    # Quitar datos de carros vacios (mantenimientos)
+    inventario = inventario.loc[~((inventario[clases] == 0).all(axis=1))]
+
     # Ordenar por fecha
     inventario.sort_values(by='Fecha',inplace=True)
     # Calcular recurrencia
@@ -280,8 +284,16 @@ with st.spinner('Descargando la información...'):
     inventario['Hora'] = inventario['Fecha'].dt.hour
     # inventario['Hora'] = inventario['Fecha'].dt.strftime('%Y-%m-%d %H')
 
-    # Metrica total de piezas
-    col1.metric('Total de piezas', inventario[clases].sum().sum())
+    metricas = col1.container()
+
+    with metricas:
+        mc1, mc2 = st.columns(2)
+        # Metrica total de piezas
+        mc1.metric('Total de piezas', inventario[clases].sum().sum())
+
+        # Salud aproximada 4 carros x hora -> 96xdia
+        salud_datos = round((inventario.shape[0]/(cantidad_dias*96))*100, 2)
+        mc2.metric('Salud aproximada', f'{salud_datos}%', help='Salud de los datos aproximada, suponiendo que pasan 4 carros por hora.')
 
     # Mostrar tabla
     st.dataframe(inventario[['Fecha', 'Dia_operativo', 'Lavamanos', 'Onepiece', 'Pedestal', 'Tanque', 'Taza', RECURRENCIA, 'Colision']], 

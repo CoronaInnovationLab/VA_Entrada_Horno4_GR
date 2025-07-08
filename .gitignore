@@ -1,10 +1,6 @@
-00_Data/crops
-00_Data/fotos
-00_Data/videos
-00_Data/alarmas
-00_Data/Imagenes
-
+00_Data
 02_Python/modelos
+05_Deep_Learning/H4_Segmentation
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

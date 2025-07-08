@@ -1,17 +1,15 @@
-from utils import conectar_camara, draw_detections, draw_grids, show_inventary, preparar_img, preparar_img_raw, Tracker, save_sql, log
-from harvesters.core import Harvester
+from utils import conectar_camara, draw_detections, draw_grids, show_inventary, preparar_img, preparar_img_raw, Tracker, save_sql, generar_alarma, log
 from ultralytics import YOLO
 import numpy as np
 import cv2 as cv
 import torch
 import time
-import sys
 import os
 
 # ******************************************************
 # Configuraciones iniciales
 # ******************************************************
-model_path: str = "runs/train/Entrada_H4_YOLO_V1/weights/best.pt" 
+model_path: str = "runs/train/Entrada_H4_YOLO_V2/weights/best.pt" 
 crop_path: str = "../00_Data/crops"
 
 video_path: str = '../00_Data/videos'
@@ -138,4 +136,6 @@ while True:
             cv.destroyAllWindows()
             #
             save_sql(tracker.inventario, video_name, alarma_choque)
+            if alarma_choque:
+                generar_alarma()
             log(tracker.inventario)

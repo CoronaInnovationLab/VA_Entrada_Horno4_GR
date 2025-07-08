@@ -1,5 +1,5 @@
 from subprocess import Popen
-import sys
+import time
 import datetime
 
 filename = 'YOLO_camera_inference.py'
@@ -8,3 +8,5 @@ while True:
     print("Starting " + filename)
     p = Popen("python " + filename , shell=True)
     p.wait()
+    print('Reiniciando en 10 segundos')
+    time.sleep(10)

@@ -1,7 +1,8 @@
 from scipy.spatial.distance import cdist
-from sqlalchemy import create_engine, exc, URL
+from sqlalchemy import create_engine, URL
 from harvesters.core import Harvester
 from dotenv import load_dotenv
+from PIL import Image
 import pandas as pd
 import numpy as np
 import cv2 as cv
@@ -23,9 +24,13 @@ mid: int = 370
 lim_izq: int = 355 # -15
 lim_der: int = 385 # +15
 path_alarma: str = '../00_Data/alarmas'
+path_alarma_procesada: str = '../00_Data/alarmas_procesadas'
+
 if not os.path.exists(path_alarma):
     os.makedirs(path_alarma)
 
+if not os.path.exists(path_alarma_procesada):
+    os.makedirs(path_alarma_procesada)
 # match ref
 ref_hole = cv.imread('Ref_Hole.png', 0)
 wt, ht = ref_hole.shape[::-1]
@@ -500,3 +505,54 @@ def save_sql(inventario_final: dict, fecha:str, alarma_choque:bool):
     #     log(f"Error al insertar datos: {e}")
     finally:
         engine.dispose()  # Cierra la conexión
+
+
+def generar_alarma() -> None:
+    '''
+    Toma todas las imágenes en el directorio especificado,
+    genera un mosaico cuadrado (1x1, 2x2, 3x3...) con ellas,
+    lo muestra y luego elimina las imágenes originales.
+    '''
+    # Obtener todas las rutas de imágenes
+    imagenes_paths = [os.path.join(path_alarma, f)
+                      for f in os.listdir(path_alarma)
+                      if f.lower().endswith(('.jpg', '.png', '.jpeg'))]
+
+    # Abrir imágenes
+    imagenes = [Image.open(path) for path in imagenes_paths]
+
+    # Calcular dimensiones del mosaico cuadrado
+    n = len(imagenes)
+    lado = math.ceil(math.sqrt(n))  # ej: 5 imágenes → lado = 3 → 3x3
+
+    ancho_estandar, alto_estandar = imagenes[0].size
+
+    # Crear lienzo del mosaico
+    mosaico_ancho = ancho_estandar * lado
+    mosaico_alto = alto_estandar * lado
+    mosaico = Image.new('RGB', (mosaico_ancho, mosaico_alto), color=(0, 0, 0))
+
+    # Pegar imágenes en el mosaico
+    for idx, img in enumerate(imagenes):
+        fila = idx // lado
+        col = idx % lado
+        x = col * ancho_estandar
+        y = fila * alto_estandar
+        mosaico.paste(img, (x, y))
+
+    # Redimensionar si excede Full HD
+    max_ancho, max_alto = 1920, 1080
+    escala = min(max_ancho / mosaico_ancho, max_alto / mosaico_alto, 1.0)
+    if escala < 1.0:
+        new_size = (int(mosaico_ancho * escala), int(mosaico_alto * escala))
+        mosaico = mosaico.resize(new_size)
+
+    # Guardar mosaico
+    nombre_salida = os.path.basename(imagenes_paths[0])
+    ruta_salida = os.path.join(path_alarma_procesada, nombre_salida)
+    mosaico.save(ruta_salida)
+
+    # Cerrar y eliminar imágenes originales
+    for img, path in zip(imagenes, imagenes_paths):
+        img.close()
+        os.remove(path)

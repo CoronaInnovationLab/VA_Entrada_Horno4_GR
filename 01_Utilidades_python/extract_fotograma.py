@@ -1,19 +1,19 @@
 import cv2 as cv
 import numpy as np
-import time
+from tqdm import tqdm
 import os
 
 # Constantes
 input_path = r'C:\Users\horno4pg\OneDrive - Corona\Documentos\VA_Entrada_Horno4_GR\00_Data\videos'
 
 # Directorio donde se guardarán los fotogramas
-out_path = r'C:\Users\horno4pg\OneDrive - Corona\Documentos\VA_Entrada_Horno4_GR\00_Data\Imagenes\nuevas'
+out_path = r'C:\Users\horno4pg\OneDrive - Corona\Documentos\VA_Entrada_Horno4_GR\00_Data\Imagenes\test'
 
 if not os.path.exists(out_path):
     os.makedirs(out_path)
 
 # Intervalo de fotogramas (por ejemplo, extraer cada 10 fotogramas)
-frame_interval = 25
+frame_interval = 120
 
 def preparar_img(img):
 
@@ -52,11 +52,11 @@ def preparar_img(img):
 ########################################3
 # main
 
-paths = sorted(os.listdir(input_path), reverse=True)[2:]
+# paths = sorted(os.listdir(input_path), reverse=True)[2:100]
+paths = sorted(os.listdir(input_path), reverse=True)[1000:1050]
 print(paths)
 
-for video_path in paths:
-
+for video_path in tqdm(paths):
     video_path = os.path.join(input_path,video_path)
     # Abrir el video con OpenCV
     cap = cv.VideoCapture(video_path)
@@ -89,4 +89,5 @@ for video_path in paths:
 
     # Liberar el video y cerrar todas las ventanas
     cap.release()
-    print(f'Extracción de fotogramas para el video {video_name} completada.')
+    # print(f'Extracción de fotogramas para el video {video_name} completada.')
+    

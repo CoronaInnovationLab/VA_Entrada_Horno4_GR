@@ -114,7 +114,7 @@ while True:
         inference.write(frame)
 
         # Ver en tiempo real
-        cv.imshow("YOLOv8 Inference", frame)
+        cv.imshow("YOLO Inference", frame)
 
         key = cv.waitKey(1)
         if key == ord('q'):

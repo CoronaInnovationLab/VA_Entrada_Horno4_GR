@@ -1,4 +1,4 @@
-from utils import conectar_camara, draw_detections, draw_grids, show_inventary, preparar_img, preparar_img_raw, Tracker, save_sql, generar_alarma, log
+from utils import conectar_camara, draw_detections, draw_grids, show_inventary, preparar_img, preparar_img_raw, Tracker, save_sql, generar_alarma, detener_alarma, log
 from ultralytics import YOLO
 import numpy as np
 import cv2 as cv
@@ -139,3 +139,8 @@ while True:
             if alarma_choque:
                 generar_alarma()
             log(tracker.inventario)
+
+            # sleep para que suene la alarma
+            time.sleep(5)
+            if alarma_choque:
+                detener_alarma()

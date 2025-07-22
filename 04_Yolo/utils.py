@@ -1,3 +1,4 @@
+from pymodbus.client import ModbusTcpClient
 from scipy.spatial.distance import cdist
 from sqlalchemy import create_engine, URL
 from harvesters.core import Harvester
@@ -67,7 +68,10 @@ tabla = 'entrada_H4_GR'
 connection_str = "DRIVER={ODBC Driver 17 for SQL Server};SERVER=%s;DATABASE=%s;UID=%s;PWD=%s;Encrypt=no" % (server, database, username, password)
 connection_url = URL.create("mssql+pyodbc", query={"odbc_connect": connection_str})
 
-# Errores personalizados
+# Comunicacion plc alarma
+ipaddress_plc = '10.126.64.112'
+# %MW40 a %MW49
+alarm_address = 40
 
 
 def log(msg:str):
@@ -510,9 +514,18 @@ def save_sql(inventario_final: dict, fecha:str, alarma_choque:bool):
 def generar_alarma() -> None:
     '''
     Toma todas las imágenes en el directorio especificado,
-    genera un mosaico cuadrado (1x1, 2x2, 3x3...) con ellas,
-    lo muestra y luego elimina las imágenes originales.
+    genera un mosaico cuadrado (1x1, 2x2, 3x3...) con ellas
+    y luego elimina las imágenes originales.
     '''
+    client = ModbusTcpClient(ipaddress_plc)
+    client.connect()
+
+    # Escribe alarma (1)
+    client.write_register(alarm_address, 1)
+    log('Baliza encendida')
+
+    client.close()
+
     # Obtener todas las rutas de imágenes
     imagenes_paths = [os.path.join(path_alarma, f)
                       for f in os.listdir(path_alarma)
@@ -556,3 +569,12 @@ def generar_alarma() -> None:
     for img, path in zip(imagenes, imagenes_paths):
         img.close()
         os.remove(path)
+
+def detener_alarma() -> None:
+    client = ModbusTcpClient(ipaddress_plc)
+    client.connect()
+
+    # Escribe alarma (1)
+    client.write_register(alarm_address, 0)
+    log('Baliza apagada')
+    client.close()

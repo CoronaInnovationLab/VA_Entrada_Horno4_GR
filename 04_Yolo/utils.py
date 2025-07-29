@@ -266,7 +266,6 @@ def preparar_img(img):
     # Area seleccion ROI 
     cv.rectangle(blank, (roi_x1, roi_y1), (roi_x2, roi_y2), 255, -1)
     mascara = cv.bitwise_and(img_final,img_final,mask=blank)
-    cv.imwrite('mask.png', mascara)
     
     return img_final, mascara
 

@@ -35,14 +35,17 @@ captura_realizada = False
 while True:
     señal = ia.remote_device.node_map.LineStatus.value
 
+    print(señal)
     if not señal:
         if captura_realizada:
-            time.sleep(5)
+            time.sleep(7)
             cv.destroyAllWindows()
 
     else:
         captura_realizada = True
-        print('Iniciando captura de datos', flush=True)
+        # timestamp = time.strftime('%Y-%m-%d_%H-%M-%S', time.time())
+        timestamp = 'asd'
+        print('Capturando datos', flush=True)
         
         ia.start()
         # Capturar una imagen de la cámara
@@ -63,8 +66,8 @@ while True:
         frame = preparar_img(img_original_camara_copy)
 
         # Showing the image
-        cv.imshow('Camera Feed', frame)
-        cv.imwrite('captura_salida.png', frame)
+        # cv.imshow('Camera Feed', frame)
+        cv.imwrite(f'{timestamp}.png', frame)
         key = cv.waitKey(1)
         if key == ord('q'):
             break

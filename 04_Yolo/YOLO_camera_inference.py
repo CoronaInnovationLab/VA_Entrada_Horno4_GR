@@ -9,7 +9,8 @@ import os
 # ******************************************************
 # Configuraciones iniciales
 # ******************************************************
-model_path: str = "runs/train/Entrada_H4_YOLO_V2/weights/best.pt" 
+model_path: str = "runs/train/Entrada_H4_YOLO_SEG_X_V2_384x288/weights/best.pt" 
+# model_path: str = "runs/train/best.pt" 
 crop_path: str = "../00_Data/crops"
 
 video_path: str = '../00_Data/videos'

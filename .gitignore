@@ -2,6 +2,8 @@
 02_Python/modelos
 05_Deep_Learning/H4_Segmentation
 
+*.pt
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

@@ -10,7 +10,7 @@ import os
 # Configuraciones iniciales
 # ******************************************************
 model_path: str = "runs/train/Entrada_H4_YOLO_SEG_X_V2_384x288/weights/best.pt" 
-# model_path: str = "runs/train/best.pt" 
+# model_path: str = "runs/train/Entrada_H4_YOLO_SEG_X_V2/weights/best.pt" 
 crop_path: str = "../00_Data/crops"
 
 video_path: str = '../00_Data/videos'
@@ -85,7 +85,7 @@ while True:
         image = preparar_img_raw(image)
 
         # Inferir
-        results = model.predict(source=roi, conf=min_confidence, iou=min_iou, device=device, verbose=False)
+        results = model.predict(source=roi, imgsz=[384,288], conf=min_confidence, iou=min_iou, device=device, verbose=False)
         
         # Procesar resultados
         for result in results:
